@@ -1,14 +1,36 @@
-import React, { useState } from "react"
+import React, { useState, useRef, useEffect } from "react"
 import { motion } from "framer-motion"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { Users, TrendingUp, Target, MessageSquare, Send, Bot, Sparkles } from "lucide-react"
+import { Label } from "@/components/ui/label"
+import { useToast } from "@/hooks/use-toast"
+import { Users, TrendingUp, Target, MessageSquare, Send, Bot, Sparkles, User, Loader2, Key } from "lucide-react"
+
+interface Message {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  timestamp: Date
+}
 
 export default function Agents() {
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null)
   const [message, setMessage] = useState("")
+  const [messages, setMessages] = useState<Message[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [apiKey, setApiKey] = useState("")
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const { toast } = useToast()
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }
+
+  useEffect(() => {
+    scrollToBottom()
+  }, [messages])
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -39,6 +61,7 @@ export default function Agents() {
       color: "from-blue-500 to-cyan-500",
       description: "Expert in human resources, recruitment, and employee management",
       specialties: ["Recruitment", "Employee Relations", "Performance Management", "Policy Development"],
+      systemPrompt: "You are an expert HR professional with extensive experience in human resources, recruitment, employee relations, and organizational development. Provide helpful, professional advice on HR matters.",
       tasks: [
         "Screen and evaluate job candidates",
         "Create job descriptions and postings",
@@ -54,6 +77,7 @@ export default function Agents() {
       color: "from-green-500 to-emerald-500",
       description: "Specialized in marketing strategies, campaigns, and customer analysis",
       specialties: ["Digital Marketing", "Content Strategy", "Campaign Analysis", "Customer Insights"],
+      systemPrompt: "You are a seasoned marketing expert with deep knowledge in digital marketing, content strategy, brand management, and customer analytics. Help users create effective marketing strategies and campaigns.",
       tasks: [
         "Create marketing campaign strategies",
         "Analyze customer behavior and trends",
@@ -69,6 +93,7 @@ export default function Agents() {
       color: "from-purple-500 to-pink-500",
       description: "Focused on business strategy, planning, and data-driven decisions",
       specialties: ["Business Planning", "Market Analysis", "Financial Modeling", "Risk Assessment"],
+      systemPrompt: "You are a senior business strategist with expertise in strategic planning, market analysis, competitive intelligence, and business development. Provide insights for data-driven business decisions.",
       tasks: [
         "Develop business strategies and plans",
         "Analyze market opportunities",
@@ -79,11 +104,118 @@ export default function Agents() {
     }
   ]
 
-  const handleSendMessage = () => {
-    if (message.trim() && selectedAgent) {
-      // Simulate sending message
-      console.log(`Message sent to ${selectedAgent}: ${message}`)
-      setMessage("")
+  const handleAgentSelect = (agentId: string) => {
+    if (selectedAgent !== agentId) {
+      setSelectedAgent(agentId)
+      setMessages([])
+      
+      // Add welcome message
+      const agent = agents.find(a => a.id === agentId)!
+      const welcomeMessage: Message = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: `Hello! I'm your ${agent.name}. I specialize in ${agent.specialties.join(", ").toLowerCase()}. How can I help you today?`,
+        timestamp: new Date()
+      }
+      setMessages([welcomeMessage])
+    }
+  }
+
+  const sendMessage = async () => {
+    if (!message.trim() || !selectedAgent || isLoading) return
+    
+    if (!apiKey.trim()) {
+      toast({
+        title: "API Key Required",
+        description: "Please enter your Perplexity API key to start chatting.",
+        variant: "destructive"
+      })
+      return
+    }
+
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: message.trim(),
+      timestamp: new Date()
+    }
+
+    setMessages(prev => [...prev, userMessage])
+    setMessage("")
+    setIsLoading(true)
+
+    try {
+      const agent = agents.find(a => a.id === selectedAgent)!
+      
+      const response = await fetch('https://api.perplexity.ai/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'llama-3.1-sonar-small-128k-online',
+          messages: [
+            {
+              role: 'system',
+              content: agent.systemPrompt
+            },
+            ...messages.map(msg => ({
+              role: msg.role,
+              content: msg.content
+            })),
+            {
+              role: 'user',
+              content: userMessage.content
+            }
+          ],
+          temperature: 0.2,
+          top_p: 0.9,
+          max_tokens: 1000,
+          return_images: false,
+          return_related_questions: false,
+          frequency_penalty: 1,
+          presence_penalty: 0
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status}`)
+      }
+
+      const data = await response.json()
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: data.choices[0].message.content,
+        timestamp: new Date()
+      }
+
+      setMessages(prev => [...prev, assistantMessage])
+    } catch (error) {
+      console.error('Error sending message:', error)
+      toast({
+        title: "Error",
+        description: "Failed to send message. Please check your API key and try again.",
+        variant: "destructive"
+      })
+      
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: "I apologize, but I'm having trouble connecting right now. Please try again in a moment.",
+        timestamp: new Date()
+      }
+      setMessages(prev => [...prev, errorMessage])
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      sendMessage()
     }
   }
 
@@ -176,7 +308,7 @@ export default function Agents() {
                     <Button 
                       variant={selectedAgent === agent.id ? "default" : "outline"} 
                       className="w-full"
-                      onClick={() => setSelectedAgent(agent.id)}
+                      onClick={() => handleAgentSelect(agent.id)}
                     >
                       {selectedAgent === agent.id ? "Selected" : "Select Agent"}
                     </Button>
@@ -185,6 +317,54 @@ export default function Agents() {
               </motion.div>
             ))}
           </div>
+
+          {/* API Key Input */}
+          {!selectedAgent && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="max-w-2xl mx-auto mb-8"
+            >
+              <Card className="border-2 border-primary/20 bg-primary/5">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Key className="h-5 w-5 text-primary" />
+                    API Configuration
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label htmlFor="apiKey">Perplexity API Key</Label>
+                    <Input
+                      id="apiKey"
+                      type="password"
+                      placeholder="Enter your Perplexity API key..."
+                      value={apiKey}
+                      onChange={(e) => setApiKey(e.target.value)}
+                      className="mt-2"
+                    />
+                  </div>
+                  <div className="text-sm text-muted-foreground space-y-2">
+                    <p>
+                      <strong>For production:</strong> We recommend connecting this project to Supabase 
+                      and storing your API key securely in Edge Function Secrets.
+                    </p>
+                    <p>
+                      <strong>Get your API key:</strong> Visit{" "}
+                      <a 
+                        href="https://www.perplexity.ai/settings/api" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline"
+                      >
+                        Perplexity API Settings
+                      </a>
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
 
           {/* Chat Interface */}
           {selectedAgent && (
@@ -217,45 +397,90 @@ export default function Agents() {
                 
                 <CardContent className="p-0">
                   {/* Chat Messages Area */}
-                  <div className="h-96 p-6 overflow-y-auto bg-muted/20">
-                    <div className="space-y-4">
-                      <div className="flex items-start space-x-3">
-                        <div className={`p-2 bg-gradient-to-r ${agents.find(a => a.id === selectedAgent)?.color} rounded-lg`}>
-                          <Bot className="h-4 w-4 text-white" />
-                        </div>
-                        <div className="bg-card p-4 rounded-lg shadow-sm max-w-md">
-                          <p className="text-sm">
-                            Hello! I'm your {agents.find(a => a.id === selectedAgent)?.name}. 
-                            How can I help you today? Feel free to ask me about any {' '}
-                            {agents.find(a => a.id === selectedAgent)?.specialties.join(", ").toLowerCase()} questions.
-                          </p>
+                  <div className="h-96 overflow-y-auto border-b border-border">
+                    {messages.length === 0 ? (
+                      <div className="h-full flex items-center justify-center p-6 bg-muted/20">
+                        <div className="text-center text-muted-foreground">
+                          <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                          <p className="text-lg font-medium mb-2">Start a conversation</p>
+                          <p className="text-sm">Ask your AI agent any question to get started</p>
                         </div>
                       </div>
-                    </div>
-                    
-                    <div className="text-center mt-8 text-muted-foreground">
-                      <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                      <p className="text-sm">Start a conversation with your AI agent</p>
-                    </div>
+                    ) : (
+                      <div className="p-4 space-y-4">
+                        {messages.map((msg) => (
+                          <div
+                            key={msg.id}
+                            className={`flex items-start space-x-3 ${
+                              msg.role === 'user' ? 'flex-row-reverse space-x-reverse' : ''
+                            }`}
+                          >
+                            <div className={`flex-shrink-0 ${
+                              msg.role === 'user' 
+                                ? 'p-2 bg-primary rounded-lg' 
+                                : `p-2 bg-gradient-to-r ${agents.find(a => a.id === selectedAgent)?.color} rounded-lg`
+                            }`}>
+                              {msg.role === 'user' ? (
+                                <User className="h-4 w-4 text-white" />
+                              ) : (
+                                <Bot className="h-4 w-4 text-white" />
+                              )}
+                            </div>
+                            <div className={`max-w-[70%] p-4 rounded-lg shadow-sm ${
+                              msg.role === 'user' 
+                                ? 'bg-primary text-primary-foreground ml-auto' 
+                                : 'bg-card border'
+                            }`}>
+                              <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                              <p className={`text-xs mt-2 opacity-70 ${
+                                msg.role === 'user' ? 'text-primary-foreground/70' : 'text-muted-foreground'
+                              }`}>
+                                {msg.timestamp.toLocaleTimeString()}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                        
+                        {isLoading && (
+                          <div className="flex items-start space-x-3">
+                            <div className={`p-2 bg-gradient-to-r ${agents.find(a => a.id === selectedAgent)?.color} rounded-lg`}>
+                              <Bot className="h-4 w-4 text-white" />
+                            </div>
+                            <div className="bg-card border p-4 rounded-lg shadow-sm">
+                              <div className="flex items-center space-x-2">
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                <span className="text-sm text-muted-foreground">Thinking...</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        <div ref={messagesEndRef} />
+                      </div>
+                    )}
                   </div>
                   
                   {/* Chat Input */}
-                  <div className="p-6 border-t border-border">
-                    <div className="flex space-x-4">
+                  <div className="p-4">
+                    <div className="flex space-x-3">
                       <Input
-                        placeholder={`Ask ${agents.find(a => a.id === selectedAgent)?.name} a question...`}
+                        placeholder={`Message ${agents.find(a => a.id === selectedAgent)?.name}...`}
                         value={message}
                         onChange={(e) => setMessage(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                        onKeyPress={handleKeyPress}
+                        disabled={isLoading}
                         className="flex-1"
                       />
                       <Button 
-                        onClick={handleSendMessage}
-                        disabled={!message.trim()}
+                        onClick={sendMessage}
+                        disabled={!message.trim() || isLoading || !apiKey.trim()}
                         variant="gradient"
                         className="px-6"
                       >
-                        <Send className="h-4 w-4" />
+                        {isLoading ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Send className="h-4 w-4" />
+                        )}
                       </Button>
                     </div>
                     
