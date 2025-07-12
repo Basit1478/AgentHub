@@ -33,7 +33,7 @@ export function Navbar() {
             >
               <Bot className="h-6 w-6 text-white" />
             </motion.div>
-            <span className="text-xl font-bold gradient-text">AI Agents</span>
+            <span className="text-xl font-bold gradient-text">VoiceVerse AI</span>
           </Link>
 
           {/* Desktop Navigation */}

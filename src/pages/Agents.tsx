@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
-import { Users, TrendingUp, Target, MessageSquare, Send, Bot, Sparkles, User, Loader2, Key } from "lucide-react"
+import { Users, TrendingUp, Target, MessageSquare, Send, Bot, Sparkles, User, Loader2, Key, Mic, MicOff, Volume2, Languages } from "lucide-react"
 
 interface Message {
   id: string
@@ -21,6 +22,9 @@ export default function Agents() {
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [apiKey, setApiKey] = useState("")
+  const [selectedLanguage, setSelectedLanguage] = useState("en")
+  const [isListening, setIsListening] = useState(false)
+  const [isSpeaking, setIsSpeaking] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
 
@@ -31,6 +35,95 @@ export default function Agents() {
   useEffect(() => {
     scrollToBottom()
   }, [messages])
+
+  const languages = [
+    { code: "en", name: "English", flag: "🇺🇸" },
+    { code: "es", name: "Spanish", flag: "🇪🇸" },
+    { code: "fr", name: "French", flag: "🇫🇷" },
+    { code: "de", name: "German", flag: "🇩🇪" },
+    { code: "it", name: "Italian", flag: "🇮🇹" },
+    { code: "pt", name: "Portuguese", flag: "🇵🇹" },
+    { code: "ru", name: "Russian", flag: "🇷🇺" },
+    { code: "ja", name: "Japanese", flag: "🇯🇵" },
+    { code: "ko", name: "Korean", flag: "🇰🇷" },
+    { code: "zh", name: "Chinese", flag: "🇨🇳" },
+    { code: "ar", name: "Arabic", flag: "🇸🇦" },
+    { code: "hi", name: "Hindi", flag: "🇮🇳" },
+    { code: "nl", name: "Dutch", flag: "🇳🇱" },
+    { code: "sv", name: "Swedish", flag: "🇸🇪" },
+    { code: "no", name: "Norwegian", flag: "🇳🇴" },
+  ]
+
+  const speakText = (text: string) => {
+    if ('speechSynthesis' in window) {
+      setIsSpeaking(true)
+      const utterance = new SpeechSynthesisUtterance(text)
+      utterance.lang = selectedLanguage === 'zh' ? 'zh-CN' : selectedLanguage
+      utterance.rate = 0.9
+      utterance.pitch = 1
+      
+      utterance.onend = () => {
+        setIsSpeaking(false)
+      }
+      
+      utterance.onerror = () => {
+        setIsSpeaking(false)
+        toast({
+          title: "Speech Error",
+          description: "Unable to speak the response. Please check your browser settings.",
+          variant: "destructive"
+        })
+      }
+      
+      window.speechSynthesis.speak(utterance)
+    } else {
+      toast({
+        title: "Speech Not Supported",
+        description: "Your browser doesn't support text-to-speech.",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const startListening = () => {
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition
+      const recognition = new SpeechRecognition()
+      
+      recognition.continuous = false
+      recognition.interimResults = false
+      recognition.lang = selectedLanguage === 'zh' ? 'zh-CN' : selectedLanguage
+      
+      setIsListening(true)
+      
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript
+        setMessage(transcript)
+        setIsListening(false)
+      }
+      
+      recognition.onerror = () => {
+        setIsListening(false)
+        toast({
+          title: "Speech Recognition Error",
+          description: "Unable to recognize speech. Please try again.",
+          variant: "destructive"
+        })
+      }
+      
+      recognition.onend = () => {
+        setIsListening(false)
+      }
+      
+      recognition.start()
+    } else {
+      toast({
+        title: "Speech Recognition Not Supported",
+        description: "Your browser doesn't support speech recognition.",
+        variant: "destructive"
+      })
+    }
+  }
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -158,7 +251,7 @@ export default function Agents() {
           messages: [
             {
               role: 'system',
-              content: agent.systemPrompt
+              content: `${agent.systemPrompt} Please respond in ${languages.find(l => l.code === selectedLanguage)?.name || 'English'} language.`
             },
             ...messages.map(msg => ({
               role: msg.role,
@@ -192,6 +285,11 @@ export default function Agents() {
       }
 
       setMessages(prev => [...prev, assistantMessage])
+      
+      // Auto-speak the response if speech synthesis is available
+      if (selectedLanguage && 'speechSynthesis' in window) {
+        setTimeout(() => speakText(data.choices[0].message.content), 500)
+      }
     } catch (error) {
       console.error('Error sending message:', error)
       toast({
@@ -459,17 +557,96 @@ export default function Agents() {
                     )}
                   </div>
                   
+                  {/* API Key Input */}
+                  {!apiKey.trim() && (
+                    <div className="p-4 border-b border-border bg-muted/20">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Key className="h-4 w-4 text-primary" />
+                        <Label htmlFor="chatApiKey" className="font-medium">
+                          Enter your Perplexity API key to start chatting
+                        </Label>
+                      </div>
+                      <Input
+                        id="chatApiKey"
+                        type="password"
+                        placeholder="Perplexity API key..."
+                        value={apiKey}
+                        onChange={(e) => setApiKey(e.target.value)}
+                        className="w-full"
+                      />
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Get your API key from{" "}
+                        <a 
+                          href="https://www.perplexity.ai/settings/api" 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline"
+                        >
+                          Perplexity API Settings
+                        </a>
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Language & Voice Controls */}
+                  <div className="p-4 border-b border-border bg-muted/10">
+                    <div className="flex items-center justify-between flex-wrap gap-4">
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Languages className="h-4 w-4 text-primary" />
+                          <Label className="text-sm font-medium">Language:</Label>
+                          <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
+                            <SelectTrigger className="w-40">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {languages.map((lang) => (
+                                <SelectItem key={lang.code} value={lang.code}>
+                                  <span className="flex items-center gap-2">
+                                    <span>{lang.flag}</span>
+                                    <span>{lang.name}</span>
+                                  </span>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-xs">
+                          Voice & Text Enabled
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                  
                   {/* Chat Input */}
                   <div className="p-4">
-                    <div className="flex space-x-3">
+                    <div className="flex space-x-2">
                       <Input
-                        placeholder={`Message ${agents.find(a => a.id === selectedAgent)?.name}...`}
+                        placeholder={`Message ${agents.find(a => a.id === selectedAgent)?.name}... (${languages.find(l => l.code === selectedLanguage)?.name})`}
                         value={message}
                         onChange={(e) => setMessage(e.target.value)}
                         onKeyPress={handleKeyPress}
                         disabled={isLoading}
                         className="flex-1"
                       />
+                      
+                      <Button
+                        onClick={startListening}
+                        disabled={isLoading || isListening}
+                        variant="outline"
+                        size="icon"
+                        className={isListening ? "animate-pulse bg-red-500/10 border-red-500" : ""}
+                      >
+                        {isListening ? (
+                          <MicOff className="h-4 w-4 text-red-500" />
+                        ) : (
+                          <Mic className="h-4 w-4" />
+                        )}
+                      </Button>
+                      
                       <Button 
                         onClick={sendMessage}
                         disabled={!message.trim() || isLoading || !apiKey.trim()}
@@ -484,8 +661,32 @@ export default function Agents() {
                       </Button>
                     </div>
                     
-                    <div className="mt-3 text-xs text-muted-foreground">
-                      💡 Try asking: "How can you help me with recruitment?" or "What marketing strategies work best?"
+                    <div className="mt-3 flex items-center justify-between">
+                      <div className="text-xs text-muted-foreground">
+                        💡 Try asking: "How can you help me with recruitment?" or speak using the mic button
+                      </div>
+                      
+                      {messages.length > 0 && messages[messages.length - 1]?.role === 'assistant' && (
+                        <Button
+                          onClick={() => speakText(messages[messages.length - 1].content)}
+                          disabled={isSpeaking}
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs"
+                        >
+                          {isSpeaking ? (
+                            <>
+                              <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                              Speaking...
+                            </>
+                          ) : (
+                            <>
+                              <Volume2 className="h-3 w-3 mr-1" />
+                              Speak Response
+                            </>
+                          )}
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </CardContent>
