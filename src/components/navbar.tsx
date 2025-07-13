@@ -57,10 +57,10 @@ export function Navbar() {
           <div className="hidden md:flex items-center space-x-4">
             <ThemeToggle />
             <Button variant="ghost" asChild>
-              <Link to="/login">Sign In</Link>
+              <Link to="/auth">Sign In</Link>
             </Button>
             <Button variant="gradient" asChild>
-              <Link to="/signup">Get Started</Link>
+              <Link to="/auth">Get Started</Link>
             </Button>
           </div>
 
@@ -103,10 +103,10 @@ export function Navbar() {
             ))}
             <div className="flex space-x-2 px-3 pt-4">
               <Button variant="ghost" className="flex-1" asChild>
-                <Link to="/login">Sign In</Link>
+                <Link to="/auth">Sign In</Link>
               </Button>
               <Button variant="gradient" className="flex-1" asChild>
-                <Link to="/signup">Get Started</Link>
+                <Link to="/auth">Get Started</Link>
               </Button>
             </div>
           </div>
