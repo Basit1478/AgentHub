@@ -97,7 +97,7 @@ export default function Agents() {
     if (!apiKey.trim()) {
       toast({
         title: "API Key Required",
-        description: "Please enter your Perplexity API key before starting a conversation.",
+        description: "Please enter your Gemini API key before starting a conversation.",
         variant: "destructive"
       })
       return
@@ -160,11 +160,11 @@ export default function Agents() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
-                    <Label htmlFor="mainApiKey">Perplexity API Key</Label>
+                    <Label htmlFor="mainApiKey">Gemini API Key</Label>
                     <Input
                       id="mainApiKey"
                       type="password"
-                      placeholder="Enter your Perplexity API key..."
+                      placeholder="Enter your Gemini API key..."
                       value={apiKey}
                       onChange={(e) => setApiKey(e.target.value)}
                       className="mt-2"
@@ -173,12 +173,12 @@ export default function Agents() {
                   <p className="text-sm text-muted-foreground">
                     🔑 Get your API key from{" "}
                     <a 
-                      href="https://www.perplexity.ai/settings/api" 
+                      href="https://makersuite.google.com/app/apikey" 
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="text-primary hover:underline font-medium"
                     >
-                      Perplexity API Settings
+                      Google AI Studio
                     </a>
                   </p>
                 </CardContent>

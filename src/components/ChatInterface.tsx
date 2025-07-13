@@ -140,30 +140,24 @@ export function ChatInterface({ agent, onClose, apiKey }: ChatInterfaceProps) {
     setIsLoading(true)
 
     try {
-      const response = await fetch('https://api.perplexity.ai/chat/completions', {
+      const allMessages = [
+        {
+          role: 'user',
+          parts: [{ text: `${agent.systemPrompt}\n\nConversation history:\n${messages.filter(m => m.id !== "welcome").map(msg => `${msg.role}: ${msg.content}`).join('\n')}\n\nUser: ${userMessage.content}` }]
+        }
+      ]
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'llama-3.1-sonar-small-128k-online',
-          messages: [
-            {
-              role: 'system',
-              content: agent.systemPrompt
-            },
-            ...messages.filter(m => m.id !== "welcome").map(msg => ({
-              role: msg.role,
-              content: msg.content
-            })),
-            {
-              role: 'user',
-              content: userMessage.content
-            }
-          ],
-          temperature: 0.7,
-          max_tokens: 1000,
+          contents: allMessages,
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 1000,
+          }
         }),
       })
 
@@ -176,7 +170,7 @@ export function ChatInterface({ agent, onClose, apiKey }: ChatInterfaceProps) {
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: data.choices[0].message.content,
+        content: data.candidates[0].content.parts[0].text,
         timestamp: new Date()
       }
 
