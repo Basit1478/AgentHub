@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { Users, TrendingUp, Target, MessageSquare, Bot, Sparkles, Zap } from "lucide-react"
 import { ChatInterface } from "@/components/ChatInterface"
+import { Link } from "react-router-dom"
 
 interface Message {
   id: string
@@ -44,51 +45,54 @@ export default function Agents() {
 
   const agents = [
     {
-      id: "hr",
-      name: "HR Agent",
-      icon: Users,
-      color: "from-blue-500 to-cyan-500",
-      description: "Expert in human resources, recruitment, and employee management",
-      specialties: ["Recruitment", "Employee Relations", "Performance Management", "Policy Development"],
-      systemPrompt: "You are an expert HR professional with extensive experience in human resources, recruitment, employee relations, and organizational development. Provide helpful, professional advice on HR matters.",
-      tasks: [
-        "Screen and evaluate job candidates",
-        "Create job descriptions and postings",
-        "Manage employee onboarding processes",
-        "Handle HR policy questions",
-        "Analyze employee satisfaction data"
-      ]
-    },
-    {
-      id: "marketing",
-      name: "Marketing Agent",
-      icon: TrendingUp,
-      color: "from-green-500 to-emerald-500",
-      description: "Specialized in marketing strategies, campaigns, and customer analysis",
-      specialties: ["Digital Marketing", "Content Strategy", "Campaign Analysis", "Customer Insights"],
-      systemPrompt: "You are a seasoned marketing expert with deep knowledge in digital marketing, content strategy, brand management, and customer analytics. Help users create effective marketing strategies and campaigns.",
-      tasks: [
-        "Create marketing campaign strategies",
-        "Analyze customer behavior and trends",
-        "Generate content ideas and copy",
-        "Optimize ad performance",
-        "Conduct market research"
-      ]
-    },
-    {
-      id: "strategy",
-      name: "Strategy Agent",
+      id: "ceo",
+      name: "CEO Agent",
+      title: "Strategic Leader",
       icon: Target,
-      color: "from-purple-500 to-pink-500",
-      description: "Focused on business strategy, planning, and data-driven decisions",
-      specialties: ["Business Planning", "Market Analysis", "Financial Modeling", "Risk Assessment"],
-      systemPrompt: "You are a senior business strategist with expertise in strategic planning, market analysis, competitive intelligence, and business development. Provide insights for data-driven business decisions.",
+      color: "from-indigo-600 to-purple-600",
+      description: "🧠 Your strategic business partner for high-level decisions and company vision",
+      specialties: ["Strategic Planning", "Leadership", "Decision Making", "Vision Setting"],
+      systemPrompt: `You are a seasoned CEO with 20+ years of experience leading successful companies. You provide strategic guidance, leadership insights, and help with high-level business decisions. You speak with authority but remain approachable. Auto-detect the user's language and respond in the same language. Support: English, Urdu, Hindi, Arabic, French, Spanish, Chinese.`,
       tasks: [
-        "Develop business strategies and plans",
-        "Analyze market opportunities",
-        "Create financial projections",
-        "Assess business risks",
-        "Optimize operational processes"
+        "Strategic business planning",
+        "Leadership guidance", 
+        "Market expansion strategies",
+        "Investment decisions",
+        "Company vision development"
+      ]
+    },
+    {
+      id: "hunarbot",
+      name: "HunarBot",
+      title: "HR Specialist", 
+      icon: Users,
+      color: "from-blue-600 to-cyan-600",
+      description: "💼 Your intelligent HR partner for talent management and employee success",
+      specialties: ["Talent Acquisition", "Employee Development", "Performance Management", "HR Policies"],
+      systemPrompt: `You are HunarBot, an expert HR professional with deep knowledge in human resources, talent management, and organizational development. You help with hiring, employee engagement, and HR best practices. Auto-detect the user's language and respond in the same language. Support: English, Urdu, Hindi, Arabic, French, Spanish, Chinese.`,
+      tasks: [
+        "Recruitment and hiring strategies",
+        "Employee onboarding processes", 
+        "Performance evaluation systems",
+        "HR policy development",
+        "Team building initiatives"
+      ]
+    },
+    {
+      id: "buzzbot",
+      name: "BuzzBot", 
+      title: "Marketing Expert",
+      icon: TrendingUp,
+      color: "from-emerald-600 to-teal-600", 
+      description: "📣 Your creative marketing genius for campaigns and brand growth",
+      specialties: ["Digital Marketing", "Brand Strategy", "Campaign Management", "Social Media"],
+      systemPrompt: `You are BuzzBot, a creative marketing expert with expertise in digital marketing, brand building, and campaign strategies. You help create engaging content, optimize marketing funnels, and drive growth. Auto-detect the user's language and respond in the same language. Support: English, Urdu, Hindi, Arabic, French, Spanish, Chinese.`,
+      tasks: [
+        "Marketing campaign creation",
+        "Social media strategies",
+        "Content marketing plans", 
+        "Brand positioning",
+        "Customer acquisition tactics"
       ]
     }
   ]
@@ -130,15 +134,15 @@ export default function Agents() {
             variants={itemVariants}
             className="text-4xl md:text-6xl font-bold gradient-text mb-6"
           >
-            Choose Your AI Agent
+            RaahBot for Teams
           </motion.h1>
           
           <motion.p
             variants={itemVariants}
             className="text-xl text-muted-foreground mb-8 max-w-3xl mx-auto"
           >
-            Select from our specialized AI agents, each trained to excel in their domain. 
-            Get expert assistance with voice and text capabilities in multiple languages.
+            Meet your AI-powered team: CEO Agent for strategy, HunarBot for HR, and BuzzBot for marketing. 
+            Each agent speaks your language and provides expert guidance 24/7.
           </motion.p>
         </motion.div>
 
@@ -208,6 +212,9 @@ export default function Agents() {
                   <CardTitle className="text-2xl mb-2 group-hover:text-primary transition-colors">
                     {agent.name}
                   </CardTitle>
+                  <Badge variant="outline" className="mb-3">
+                    {agent.title}
+                  </Badge>
                   <p className="text-muted-foreground">{agent.description}</p>
                 </CardHeader>
                 
@@ -235,27 +242,39 @@ export default function Agents() {
                     </ul>
                   </div>
                   
-                  <Button
-                    onClick={() => handleAgentSelect(agent)}
-                    variant="gradient"
-                    className="w-full group relative overflow-hidden"
-                    disabled={!apiKey.trim()}
-                  >
-                    <motion.div
-                      className="flex items-center space-x-2"
-                      whileHover={{ x: 5 }}
-                      transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                  <div className="space-y-3">
+                    <Link to={`/agents/${agent.id}`} className="block">
+                      <Button
+                        variant="gradient"
+                        className="w-full group relative overflow-hidden"
+                      >
+                        <motion.div
+                          className="flex items-center space-x-2"
+                          whileHover={{ x: 5 }}
+                          transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                        >
+                          <Zap className="h-4 w-4" />
+                          <span>Open Full Chat</span>
+                        </motion.div>
+                        <motion.div
+                          className="absolute inset-0 bg-white/20 rounded-lg"
+                          initial={{ x: "-100%" }}
+                          whileHover={{ x: "100%" }}
+                          transition={{ duration: 0.5 }}
+                        />
+                      </Button>
+                    </Link>
+                    
+                    <Button
+                      onClick={() => handleAgentSelect(agent)}
+                      variant="outline"
+                      className="w-full"
+                      disabled={!apiKey.trim()}
                     >
-                      <Zap className="h-4 w-4" />
-                      <span>Start Conversation</span>
-                    </motion.div>
-                    <motion.div
-                      className="absolute inset-0 bg-white/20 rounded-lg"
-                      initial={{ x: "-100%" }}
-                      whileHover={{ x: "100%" }}
-                      transition={{ duration: 0.5 }}
-                    />
-                  </Button>
+                      <MessageSquare className="h-4 w-4 mr-2" />
+                      Quick Chat
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             </motion.div>

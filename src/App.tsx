@@ -9,6 +9,9 @@ import { Footer } from "@/components/footer";
 import Home from "./pages/Home";
 import About from "./pages/About";
 import Agents from "./pages/Agents";
+import CEOAgent from "./pages/agents/CEOAgent";
+import HunarBot from "./pages/agents/HunarBot";
+import BuzzBot from "./pages/agents/BuzzBot";
 import Pricing from "./pages/Pricing";
 import Contact from "./pages/Contact";
 import FAQ from "./pages/FAQ";
@@ -31,6 +34,9 @@ const App = () => (
                 <Route path="/" element={<Home />} />
                 <Route path="/about" element={<About />} />
                 <Route path="/agents" element={<Agents />} />
+                <Route path="/agents/ceo" element={<CEOAgent />} />
+                <Route path="/agents/hunarbot" element={<HunarBot />} />
+                <Route path="/agents/buzzbot" element={<BuzzBot />} />
                 <Route path="/pricing" element={<Pricing />} />
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/faq" element={<FAQ />} />
