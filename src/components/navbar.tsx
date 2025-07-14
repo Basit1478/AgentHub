@@ -3,11 +3,15 @@ import { motion } from "framer-motion"
 import { Link, useLocation } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { Menu, X, Bot } from "lucide-react"
+import { useAuth } from "@/contexts/AuthContext"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Menu, X, Bot, User, LogOut, Settings } from "lucide-react"
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
   const location = useLocation()
+  const { user, signOut, loading } = useAuth()
 
   const navigation = [
     { name: "Home", href: "/" },
@@ -33,7 +37,7 @@ export function Navbar() {
             >
               <Bot className="h-6 w-6 text-white" />
             </motion.div>
-            <span className="text-xl font-bold gradient-text">VoiceVerse AI</span>
+            <span className="text-xl font-bold gradient-text">RaahBot for Teams</span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -56,12 +60,61 @@ export function Navbar() {
           {/* Right Side */}
           <div className="hidden md:flex items-center space-x-4">
             <ThemeToggle />
-            <Button variant="ghost" asChild>
-              <Link to="/auth">Sign In</Link>
-            </Button>
-            <Button variant="gradient" asChild>
-              <Link to="/auth">Get Started</Link>
-            </Button>
+            {loading ? (
+              <div className="w-8 h-8 animate-pulse bg-muted rounded-full" />
+            ) : user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback>
+                        {user.email?.charAt(0).toUpperCase() || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
+                  <div className="flex items-center justify-start gap-2 p-2">
+                    <div className="flex flex-col space-y-1 leading-none">
+                      <p className="font-medium">{user.email}</p>
+                      <p className="w-[200px] truncate text-sm text-muted-foreground">
+                        {user.user_metadata?.full_name || 'User'}
+                      </p>
+                    </div>
+                  </div>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link to="/agents" className="flex items-center">
+                      <Bot className="mr-2 h-4 w-4" />
+                      <span>My Agents</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/pricing" className="flex items-center">
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>Billing</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="cursor-pointer"
+                    onSelect={() => signOut()}
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <>
+                <Button variant="ghost" asChild>
+                  <Link to="/auth">Sign In</Link>
+                </Button>
+                <Button variant="gradient" asChild>
+                  <Link to="/auth">Get Started</Link>
+                </Button>
+              </>
+            )}
           </div>
 
           {/* Mobile menu button */}
@@ -102,12 +155,39 @@ export function Navbar() {
               </Link>
             ))}
             <div className="flex space-x-2 px-3 pt-4">
-              <Button variant="ghost" className="flex-1" asChild>
-                <Link to="/auth">Sign In</Link>
-              </Button>
-              <Button variant="gradient" className="flex-1" asChild>
-                <Link to="/auth">Get Started</Link>
-              </Button>
+              {user ? (
+                <div className="flex flex-col space-y-2 w-full">
+                  <div className="flex items-center space-x-2 px-2 py-1 bg-accent rounded-md">
+                    <Avatar className="h-6 w-6">
+                      <AvatarFallback className="text-xs">
+                        {user.email?.charAt(0).toUpperCase() || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-sm font-medium truncate">{user.email}</span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      signOut()
+                      setIsOpen(false)
+                    }}
+                    className="w-full"
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Sign Out
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <Button variant="ghost" className="flex-1" asChild>
+                    <Link to="/auth" onClick={() => setIsOpen(false)}>Sign In</Link>
+                  </Button>
+                  <Button variant="gradient" className="flex-1" asChild>
+                    <Link to="/auth" onClick={() => setIsOpen(false)}>Get Started</Link>
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </motion.div>

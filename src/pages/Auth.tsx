@@ -7,11 +7,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Mail, Lock, User } from "lucide-react";
+import { Loader2, Mail, Lock, User, Chrome, Github } from "lucide-react";
 
 const Auth = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [isSocialLoading, setIsSocialLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -130,16 +131,120 @@ const Auth = () => {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    setIsSocialLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/`
+        }
+      });
+
+      if (error) {
+        toast({
+          title: "Google sign in failed",
+          description: error.message,
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to sign in with Google",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSocialLoading(false);
+    }
+  };
+
+  const handleGithubSignIn = async () => {
+    setIsSocialLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'github',
+        options: {
+          redirectTo: `${window.location.origin}/`
+        }
+      });
+
+      if (error) {
+        toast({
+          title: "GitHub sign in failed",
+          description: error.message,
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to sign in with GitHub",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSocialLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Welcome</CardTitle>
+          <CardTitle className="text-2xl font-bold gradient-text">Welcome to RaahBot</CardTitle>
           <CardDescription>
-            Sign in to your account or create a new one
+            Access your AI-powered team of specialists
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {/* Social Login Buttons */}
+          <div className="space-y-3 mb-6">
+            <Button
+              onClick={handleGoogleSignIn}
+              variant="outline"
+              className="w-full relative"
+              disabled={isSocialLoading || isLoading}
+            >
+              <Chrome className="absolute left-4 h-4 w-4" />
+              {isSocialLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Connecting...
+                </>
+              ) : (
+                "Continue with Google"
+              )}
+            </Button>
+            
+            <Button
+              onClick={handleGithubSignIn}
+              variant="outline"
+              className="w-full relative"
+              disabled={isSocialLoading || isLoading}
+            >
+              <Github className="absolute left-4 h-4 w-4" />
+              {isSocialLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Connecting...
+                </>
+              ) : (
+                "Continue with GitHub"
+              )}
+            </Button>
+          </div>
+
+          {/* Divider */}
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">
+                Or continue with email
+              </span>
+            </div>
+          </div>
           <Tabs defaultValue="signin" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="signin">Sign In</TabsTrigger>
@@ -181,7 +286,7 @@ const Auth = () => {
                 <Button 
                   type="submit" 
                   className="w-full" 
-                  disabled={isLoading}
+                  disabled={isLoading || isSocialLoading}
                 >
                   {isLoading ? (
                     <>
@@ -231,7 +336,7 @@ const Auth = () => {
                 <Button 
                   type="submit" 
                   className="w-full" 
-                  disabled={isLoading}
+                  disabled={isLoading || isSocialLoading}
                 >
                   {isLoading ? (
                     <>
