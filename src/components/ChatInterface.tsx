@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
+import { supabase } from "@/integrations/supabase/client"
 import { 
   X, 
   Send, 
@@ -41,10 +42,9 @@ interface Agent {
 interface ChatInterfaceProps {
   agent: Agent
   onClose: () => void
-  apiKey: string
 }
 
-export function ChatInterface({ agent, onClose, apiKey }: ChatInterfaceProps) {
+export function ChatInterface({ agent, onClose }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [message, setMessage] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -126,7 +126,7 @@ export function ChatInterface({ agent, onClose, apiKey }: ChatInterfaceProps) {
   }
 
   const sendMessage = async () => {
-    if (!message.trim() || isLoading || !apiKey.trim()) return
+    if (!message.trim() || isLoading) return
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -140,37 +140,26 @@ export function ChatInterface({ agent, onClose, apiKey }: ChatInterfaceProps) {
     setIsLoading(true)
 
     try {
-      const allMessages = [
-        {
-          role: 'user',
-          parts: [{ text: `${agent.systemPrompt}\n\nConversation history:\n${messages.filter(m => m.id !== "welcome").map(msg => `${msg.role}: ${msg.content}`).join('\n')}\n\nUser: ${userMessage.content}` }]
-        }
-      ]
+      const conversationHistory = messages.filter(m => m.id !== "welcome").map(msg => ({
+        role: msg.role === 'user' ? 'user' : 'assistant',
+        content: msg.content
+      }))
 
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: allMessages,
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 1000,
-          }
-        }),
+      const { data, error } = await supabase.functions.invoke('chat', {
+        body: {
+          messages: [...conversationHistory, { role: 'user', content: userMessage.content }],
+          agentId: agent.id
+        }
       })
 
-      if (!response.ok) {
-        throw new Error(`API request failed: ${response.status}`)
+      if (error) {
+        throw new Error(error.message || 'Failed to send message')
       }
 
-      const data = await response.json()
-      
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: data.candidates[0].content.parts[0].text,
+        content: data.message,
         timestamp: new Date()
       }
 
@@ -178,7 +167,7 @@ export function ChatInterface({ agent, onClose, apiKey }: ChatInterfaceProps) {
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to send message. Please check your API key and try again.",
+        description: "Failed to send message. Please try again.",
         variant: "destructive"
       })
     } finally {
@@ -423,7 +412,7 @@ export function ChatInterface({ agent, onClose, apiKey }: ChatInterfaceProps) {
             {/* Send Button */}
             <Button
               onClick={sendMessage}
-              disabled={!message.trim() || isLoading || !apiKey.trim()}
+              disabled={!message.trim() || isLoading}
               className={`rounded-xl px-6 transition-all bg-gradient-to-r ${agent.color} hover:opacity-90`}
             >
               {isLoading ? (
@@ -450,11 +439,9 @@ export function ChatInterface({ agent, onClose, apiKey }: ChatInterfaceProps) {
               </span>
             </div>
             
-            {!apiKey.trim() && (
-              <Badge variant="destructive" className="text-xs">
-                API Key Required
-              </Badge>
-            )}
+            <Badge variant="outline" className="text-xs">
+              Powered by RaahBot AI
+            </Badge>
           </div>
         </div>
       </motion.div>

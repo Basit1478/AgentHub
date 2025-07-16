@@ -3,8 +3,6 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { Users, TrendingUp, Target, MessageSquare, Bot, Sparkles, Zap } from "lucide-react"
 import { ChatInterface } from "@/components/ChatInterface"
@@ -19,7 +17,6 @@ interface Message {
 
 export default function Agents() {
   const [chatAgent, setChatAgent] = useState<any>(null)
-  const [apiKey, setApiKey] = useState("")
   const { toast } = useToast()
 
   const containerVariants = {
@@ -98,14 +95,6 @@ export default function Agents() {
   ]
 
   const handleAgentSelect = (agent: any) => {
-    if (!apiKey.trim()) {
-      toast({
-        title: "API Key Required",
-        description: "Please enter your Gemini API key before starting a conversation.",
-        variant: "destructive"
-      })
-      return
-    }
     setChatAgent(agent)
   }
 
@@ -146,50 +135,33 @@ export default function Agents() {
           </motion.p>
         </motion.div>
 
-        {/* API Key Input Section */}
-        {!apiKey.trim() && (
-          <motion.div
-            initial="hidden"
-            animate="visible"
-            variants={containerVariants}
-            className="max-w-2xl mx-auto mb-12"
-          >
-            <motion.div variants={itemVariants}>
-              <Card className="border-primary/20 shadow-lg">
-                <CardHeader>
-                  <div className="flex items-center gap-2">
-                    <MessageSquare className="h-5 w-5 text-primary" />
-                    <CardTitle>Start Your Conversation</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <Label htmlFor="mainApiKey">Gemini API Key</Label>
-                    <Input
-                      id="mainApiKey"
-                      type="password"
-                      placeholder="Enter your Gemini API key..."
-                      value={apiKey}
-                      onChange={(e) => setApiKey(e.target.value)}
-                      className="mt-2"
-                    />
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    🔑 Get your API key from{" "}
-                    <a 
-                      href="https://makersuite.google.com/app/apikey" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-primary hover:underline font-medium"
-                    >
-                      Google AI Studio
-                    </a>
-                  </p>
-                </CardContent>
-              </Card>
-            </motion.div>
+        {/* Welcome Message */}
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={containerVariants}
+          className="max-w-2xl mx-auto mb-12"
+        >
+          <motion.div variants={itemVariants}>
+            <Card className="border-primary/20 shadow-lg">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="h-5 w-5 text-primary" />
+                  <CardTitle>Ready to Chat!</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-muted-foreground">
+                  🚀 Your AI agents are ready to help! No setup required - just click on any agent below to start chatting.
+                </p>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <span>Supports voice input, multilingual responses, and natural conversations</span>
+                </div>
+              </CardContent>
+            </Card>
           </motion.div>
-        )}
+        </motion.div>
 
         {/* Agents Grid */}
         <motion.div
@@ -269,7 +241,6 @@ export default function Agents() {
                       onClick={() => handleAgentSelect(agent)}
                       variant="outline"
                       className="w-full"
-                      disabled={!apiKey.trim()}
                     >
                       <MessageSquare className="h-4 w-4 mr-2" />
                       Quick Chat
@@ -336,7 +307,6 @@ export default function Agents() {
           <ChatInterface
             agent={chatAgent}
             onClose={closeChatInterface}
-            apiKey={apiKey}
           />
         )}
       </AnimatePresence>

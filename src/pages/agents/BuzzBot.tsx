@@ -1,19 +1,14 @@
-import React, { useState, useEffect } from "react"
+import React, { useState } from "react"
 import { motion } from "framer-motion"
 import { ArrowLeft, TrendingUp, Zap } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { useToast } from "@/hooks/use-toast"
 import { ChatInterface } from "@/components/ChatInterface"
 import { Link } from "react-router-dom"
 
 const BuzzBot = () => {
-  const [apiKey, setApiKey] = useState("")
   const [showChat, setShowChat] = useState(false)
-  const { toast } = useToast()
 
   const agent = {
     id: "buzzbot",
@@ -27,14 +22,6 @@ const BuzzBot = () => {
   }
 
   const handleStartChat = () => {
-    if (!apiKey.trim()) {
-      toast({
-        title: "API Key Required",
-        description: "Please enter your Gemini API key to start chatting.",
-        variant: "destructive"
-      })
-      return
-    }
     setShowChat(true)
   }
 
@@ -43,7 +30,6 @@ const BuzzBot = () => {
       <ChatInterface
         agent={agent}
         onClose={() => setShowChat(false)}
-        apiKey={apiKey}
       />
     )
   }
@@ -96,38 +82,18 @@ const BuzzBot = () => {
           </Card>
         </motion.div>
 
-        {/* API Key Input */}
+        {/* Ready to Chat */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
           className="mb-8"
         >
-          <Card className="p-6">
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="apiKey">Gemini API Key</Label>
-                <Input
-                  id="apiKey"
-                  type="password"
-                  placeholder="Enter your Gemini API key..."
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  className="mt-2"
-                />
-              </div>
-              <p className="text-sm text-muted-foreground">
-                🔑 Get your API key from{" "}
-                <a 
-                  href="https://makersuite.google.com/app/apikey" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-primary hover:underline font-medium"
-                >
-                  Google AI Studio
-                </a>
-              </p>
-            </div>
+          <Card className="p-6 text-center">
+            <h3 className="text-lg font-semibold mb-2">Ready to Chat!</h3>
+            <p className="text-muted-foreground">
+              🚀 Start your marketing conversation with BuzzBot. No setup required - just click below!
+            </p>
           </Card>
         </motion.div>
 
@@ -143,7 +109,6 @@ const BuzzBot = () => {
             variant="gradient"
             size="lg"
             className="w-full max-w-md"
-            disabled={!apiKey.trim()}
           >
             <Zap className="h-5 w-5 mr-2" />
             Start Marketing Conversation
