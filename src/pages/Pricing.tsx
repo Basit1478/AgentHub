@@ -4,8 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Check, Star, Zap, Crown } from "lucide-react"
+import { supabase } from "@/integrations/supabase/client"
+import { useToast } from "@/hooks/use-toast"
 
 export default function Pricing() {
+  const { toast } = useToast()
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -25,6 +29,38 @@ export default function Pricing() {
         duration: 0.6,
       },
     },
+  }
+
+  const handleGetStarted = async (planName: string) => {
+    try {
+      const priceIds = {
+        'Starter': 'price_starter_monthly',
+        'Professional': 'price_professional_monthly',
+        'Enterprise': 'price_enterprise_monthly'
+      }
+
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: {
+          priceId: priceIds[planName as keyof typeof priceIds],
+          planName: planName
+        }
+      })
+
+      if (error) {
+        throw error
+      }
+
+      if (data.url) {
+        window.open(data.url, '_blank')
+      }
+    } catch (error) {
+      console.error('Checkout error:', error)
+      toast({
+        title: "Error",
+        description: "Failed to start checkout. Please try again.",
+        variant: "destructive"
+      })
+    }
   }
 
   const plans = [
@@ -172,6 +208,7 @@ export default function Pricing() {
                         : ''
                     }`}
                     variant={plan.popular ? "default" : "outline"}
+                    onClick={() => handleGetStarted(plan.name)}
                   >
                     Get Started
                   </Button>

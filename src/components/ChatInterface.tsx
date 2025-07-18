@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
 import { supabase } from "@/integrations/supabase/client"
+import { FileUpload } from "@/components/FileUpload"
 import { 
   X, 
   Send, 
@@ -19,7 +20,9 @@ import {
   MessageSquare,
   Zap,
   Copy,
-  RefreshCw
+  RefreshCw,
+  Paperclip,
+  FileText
 } from "lucide-react"
 
 interface Message {
@@ -50,6 +53,8 @@ export function ChatInterface({ agent, onClose }: ChatInterfaceProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [isListening, setIsListening] = useState(false)
   const [isSpeaking, setIsSpeaking] = useState(false)
+  const [showFileUpload, setShowFileUpload] = useState(false)
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
@@ -125,6 +130,14 @@ export function ChatInterface({ agent, onClose }: ChatInterfaceProps) {
     })
   }
 
+  const handleFileUpload = (files: File[]) => {
+    setUploadedFiles(prev => [...prev, ...files])
+    toast({
+      title: "Files uploaded!",
+      description: `${files.length} file(s) ready to share with ${agent.name}`,
+    })
+  }
+
   const sendMessage = async () => {
     if (!message.trim() || isLoading) return
 
@@ -136,7 +149,9 @@ export function ChatInterface({ agent, onClose }: ChatInterfaceProps) {
     }
 
     setMessages(prev => [...prev, userMessage])
+    const currentFiles = uploadedFiles
     setMessage("")
+    setUploadedFiles([])
     setIsLoading(true)
 
     try {
@@ -148,7 +163,8 @@ export function ChatInterface({ agent, onClose }: ChatInterfaceProps) {
       const { data, error } = await supabase.functions.invoke('chat', {
         body: {
           messages: [...conversationHistory, { role: 'user', content: userMessage.content }],
-          agentId: agent.id
+          agentId: agent.id,
+          files: currentFiles.map(f => ({ name: f.name, type: f.type, size: f.size }))
         }
       })
 
@@ -374,6 +390,50 @@ export function ChatInterface({ agent, onClose }: ChatInterfaceProps) {
           </div>
         </div>
 
+        {/* File Upload Modal */}
+        <AnimatePresence>
+          {showFileUpload && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              className="absolute bottom-20 left-6 right-6 bg-background border border-border rounded-2xl shadow-2xl p-6 z-10"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">Upload Files</h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowFileUpload(false)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              
+              <FileUpload
+                onFileUpload={handleFileUpload}
+                maxFiles={10}
+                maxSize={50 * 1024 * 1024} // 50MB
+                className="mb-4"
+              />
+              
+              {uploadedFiles.length > 0 && (
+                <div className="mt-4">
+                  <h4 className="text-sm font-medium mb-2">Ready to send:</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {uploadedFiles.map((file, index) => (
+                      <Badge key={index} variant="secondary" className="text-xs">
+                        <FileText className="h-3 w-3 mr-1" />
+                        {file.name}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Input Area */}
         <div className="border-t border-border bg-background/50 backdrop-blur-sm p-6">
           <div className="flex items-end space-x-3">
@@ -393,6 +453,16 @@ export function ChatInterface({ agent, onClose }: ChatInterfaceProps) {
                 {message.length}
               </div>
             </div>
+            
+            {/* File Upload Button */}
+            <Button
+              onClick={() => setShowFileUpload(!showFileUpload)}
+              variant="outline"
+              size="icon"
+              className={`rounded-xl transition-all ${showFileUpload ? 'bg-primary/10 border-primary text-primary' : ''}`}
+            >
+              <Paperclip className="h-4 w-4" />
+            </Button>
             
             {/* Voice Input */}
             <Button
@@ -426,6 +496,20 @@ export function ChatInterface({ agent, onClose }: ChatInterfaceProps) {
             </Button>
           </div>
           
+          {/* Uploaded Files Preview */}
+          {uploadedFiles.length > 0 && (
+            <div className="mt-3 flex items-center space-x-2">
+              <span className="text-xs text-muted-foreground">Files ready:</span>
+              <div className="flex flex-wrap gap-1">
+                {uploadedFiles.map((file, index) => (
+                  <Badge key={index} variant="outline" className="text-xs">
+                    {file.name}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+          
           {/* Quick Actions */}
           <div className="flex items-center justify-between mt-3 text-xs text-muted-foreground">
             <div className="flex items-center space-x-4">
@@ -436,6 +520,10 @@ export function ChatInterface({ agent, onClose }: ChatInterfaceProps) {
               <span className="flex items-center">
                 <MessageSquare className="h-3 w-3 mr-1" />
                 {messages.length - 1} messages
+              </span>
+              <span className="flex items-center">
+                <Paperclip className="h-3 w-3 mr-1" />
+                Upload files
               </span>
             </div>
             
