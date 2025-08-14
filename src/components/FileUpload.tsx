@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from 'react'
+import { supabase } from '@/integrations/supabase/client'
 import { useDropzone } from 'react-dropzone'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Card, CardContent } from '@/components/ui/card'
@@ -33,6 +34,8 @@ interface UploadedFile {
   progress: number
   status: 'uploading' | 'completed' | 'error'
   url?: string
+  size?: number
+  type?: string
 }
 
 export function FileUpload({ 
@@ -97,52 +100,76 @@ export function FileUpload({
 
     setIsUploading(true)
     
-    const newFiles: UploadedFile[] = validFiles.map(file => ({
-      file,
-      id: Math.random().toString(36).substr(2, 9),
-      progress: 0,
-      status: 'uploading'
-    }))
-
-    setUploadedFiles(prev => [...prev, ...newFiles])
-
-    // Simulate upload progress
-    for (const uploadFile of newFiles) {
-      try {
-        // Simulate progress
-        for (let progress = 0; progress <= 100; progress += 10) {
-          await new Promise(resolve => setTimeout(resolve, 50))
+    try {
+      const uploadPromises = validFiles.map(async (file) => {
+        const formData = new FormData()
+        formData.append('file', file)
+        
+        const fileWithId = {
+          file,
+          id: Math.random().toString(36).substr(2, 9),
+          progress: 0,
+          status: 'uploading' as const
+        }
+        
+        setUploadedFiles(prev => [...prev, fileWithId])
+        
+        // Update progress during upload
+        for (let progress = 0; progress <= 90; progress += 10) {
+          await new Promise(resolve => setTimeout(resolve, 100))
           setUploadedFiles(prev => 
             prev.map(f => 
-              f.id === uploadFile.id 
+              f.id === fileWithId.id 
                 ? { ...f, progress }
                 : f
             )
           )
         }
-
-        const url = await simulateUpload(uploadFile.file)
+        
+        const { data, error } = await supabase.functions.invoke('file-upload', {
+          body: formData
+        })
+        
+        if (error) throw error
         
         setUploadedFiles(prev => 
           prev.map(f => 
-            f.id === uploadFile.id 
-              ? { ...f, status: 'completed', url }
+            f.id === fileWithId.id 
+              ? { 
+                  ...f, 
+                  progress: 100, 
+                  status: 'completed',
+                  url: data.url,
+                  size: data.size,
+                  type: data.type
+                }
               : f
           )
         )
-      } catch (error) {
-        setUploadedFiles(prev => 
-          prev.map(f => 
-            f.id === uploadFile.id 
-              ? { ...f, status: 'error' }
-              : f
-          )
-        )
-      }
+        
+        return {
+          id: data.id,
+          file,
+          name: data.filename,
+          size: data.size,
+          type: data.type,
+          url: data.url
+        }
+      })
+      
+      const uploadedFileData = await Promise.all(uploadPromises)
+      onFileUpload(uploadedFileData.map(f => f.file))
+      
+    } catch (error) {
+      console.error('File upload failed:', error)
+      toast({
+        title: "Upload failed",
+        description: "Some files failed to upload. Please try again.",
+        variant: "destructive"
+      })
+    } finally {
+      setIsUploading(false)
     }
-
-    setIsUploading(false)
-    onFileUpload(validFiles)
   }, [uploadedFiles, maxFiles, maxSize, onFileUpload, toast])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({

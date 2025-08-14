@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react"
+import { useAuth } from "@/contexts/AuthContext"
 import { motion, AnimatePresence } from "framer-motion"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -58,6 +59,7 @@ export function ChatInterface({ agent, onClose }: ChatInterfaceProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
+  const { user } = useAuth()
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -76,6 +78,40 @@ export function ChatInterface({ agent, onClose }: ChatInterfaceProps) {
     // Focus input
     setTimeout(() => inputRef.current?.focus(), 100)
   }, [agent])
+
+  // Load chat history on mount
+  useEffect(() => {
+    const loadChatHistory = async () => {
+      if (!user) return;
+      
+      try {
+        const { data } = await supabase.functions.invoke('get-chat-history', {
+          body: { agentId: agent.id }
+        });
+        
+        if (data?.messages && data.messages.length > 0) {
+          setMessages(data.messages);
+        }
+      } catch (error) {
+        console.error('Failed to load chat history:', error);
+      }
+    };
+
+    loadChatHistory();
+  }, [user, agent.id]);
+
+  // Save chat history
+  const saveChat = async (messages: Message[]) => {
+    if (!user) return;
+    
+    try {
+      await supabase.functions.invoke('save-chat', {
+        body: { messages, agentId: agent.id }
+      });
+    } catch (error) {
+      console.error('Failed to save chat:', error);
+    }
+  };
 
   const speakText = (text: string) => {
     if ('speechSynthesis' in window) {
@@ -179,7 +215,11 @@ export function ChatInterface({ agent, onClose }: ChatInterfaceProps) {
         timestamp: new Date()
       }
 
-      setMessages(prev => [...prev, assistantMessage])
+      const newMessages = [...messages, userMessage, assistantMessage]
+      setMessages(newMessages)
+      
+      // Save chat history
+      await saveChat(newMessages)
     } catch (error) {
       toast({
         title: "Error",
