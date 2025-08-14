@@ -1,1 +1,22 @@
 project_id = "xdbhyywhniywotdntxud"
+
+[functions.test]
+verify_jwt = false
+
+[functions.chat]
+verify_jwt = true
+
+[functions.create-checkout]
+verify_jwt = true
+
+[functions.manage-subscription]
+verify_jwt = true
+
+[functions.file-upload]
+verify_jwt = true
+
+[functions.save-chat]
+verify_jwt = true
+
+[functions.get-chat-history]
+verify_jwt = true
