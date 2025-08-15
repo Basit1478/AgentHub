@@ -20,3 +20,12 @@ verify_jwt = true
 
 [functions.get-chat-history]
 verify_jwt = true
+
+[functions.check-conversation-limit]
+verify_jwt = true
+
+[functions.admin-dashboard]
+verify_jwt = true
+
+[functions.chat-with-gemini]
+verify_jwt = true

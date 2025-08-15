@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
 import { supabase } from "@/integrations/supabase/client"
 import { FileUpload } from "@/components/FileUpload"
+import { ConversationLimitModal } from "./ConversationLimitModal"
 import { 
   X, 
   Send, 
@@ -56,10 +57,12 @@ export function ChatInterface({ agent, onClose }: ChatInterfaceProps) {
   const [isSpeaking, setIsSpeaking] = useState(false)
   const [showFileUpload, setShowFileUpload] = useState(false)
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
-  const { toast } = useToast()
+  const [showLimitModal, setShowLimitModal] = useState(false)
+  const [conversationData, setConversationData] = useState({ conversationsUsed: 0, plan: 'free' })
   const { user } = useAuth()
+  const inputRef = useRef<HTMLInputElement>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const { toast } = useToast()
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -175,7 +178,44 @@ export function ChatInterface({ agent, onClose }: ChatInterfaceProps) {
   }
 
   const sendMessage = async () => {
-    if (!message.trim() || isLoading) return
+    if (!message.trim() || isLoading || !user) return
+
+    // Check conversation limit before sending
+    try {
+      const { data: limitCheck, error: limitError } = await supabase.functions.invoke('check-conversation-limit');
+      
+      if (limitError) {
+        toast({
+          title: "Error",
+          description: "Failed to check conversation limit",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (!limitCheck.can_send) {
+        setConversationData({
+          conversationsUsed: limitCheck.conversations_used,
+          plan: limitCheck.plan
+        });
+        setShowLimitModal(true);
+        return;
+      }
+
+      setConversationData({
+        conversationsUsed: limitCheck.conversations_used,
+        plan: limitCheck.plan
+      });
+
+    } catch (error) {
+      console.error('Error checking conversation limit:', error);
+      toast({
+        title: "Error",
+        description: "Failed to verify conversation limit",
+        variant: "destructive"
+      });
+      return;
+    }
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -572,6 +612,14 @@ export function ChatInterface({ agent, onClose }: ChatInterfaceProps) {
             </Badge>
           </div>
         </div>
+
+        {/* Conversation Limit Modal */}
+        <ConversationLimitModal
+          isOpen={showLimitModal}
+          onClose={() => setShowLimitModal(false)}
+          conversationsUsed={conversationData.conversationsUsed}
+          plan={conversationData.plan}
+        />
       </motion.div>
     </motion.div>
   )
