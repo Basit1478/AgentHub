@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_users: {
+        Row: {
+          clerk_user_id: string
+          created_at: string
+          email: string
+          full_name: string | null
+          id: string
+          role: string | null
+          updated_at: string
+        }
+        Insert: {
+          clerk_user_id: string
+          created_at?: string
+          email: string
+          full_name?: string | null
+          id?: string
+          role?: string | null
+          updated_at?: string
+        }
+        Update: {
+          clerk_user_id?: string
+          created_at?: string
+          email?: string
+          full_name?: string | null
+          id?: string
+          role?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       chat_history: {
         Row: {
           agent_id: string
@@ -80,33 +110,42 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          conversations_used: number | null
           created_at: string
           credits: number | null
           email: string | null
           full_name: string | null
           id: string
+          is_admin: boolean | null
+          last_reset_date: string | null
           plan: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           avatar_url?: string | null
+          conversations_used?: number | null
           created_at?: string
           credits?: number | null
           email?: string | null
           full_name?: string | null
           id?: string
+          is_admin?: boolean | null
+          last_reset_date?: string | null
           plan?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           avatar_url?: string | null
+          conversations_used?: number | null
           created_at?: string
           credits?: number | null
           email?: string | null
           full_name?: string | null
           id?: string
+          is_admin?: boolean | null
+          last_reset_date?: string | null
           plan?: string | null
           updated_at?: string
           user_id?: string
@@ -167,12 +206,48 @@ export type Database = {
         }
         Relationships: []
       }
+      survey_responses: {
+        Row: {
+          created_at: string
+          id: string
+          responses: Json
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          responses: Json
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          responses?: Json
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "survey_responses_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      check_and_increment_conversation: {
+        Args: { user_id_param: string }
+        Returns: Json
+      }
+      reset_monthly_conversations: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
