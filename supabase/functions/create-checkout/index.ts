@@ -13,22 +13,43 @@ serve(async (req) => {
   }
 
   try {
-    const { priceId, planName } = await req.json();
+    const { planName } = await req.json();
     
-    if (!priceId || !planName) {
-      throw new Error("Price ID and plan name are required");
+    if (!planName) {
+      throw new Error("Plan name is required");
     }
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2023-10-16",
     });
 
-    // Create Stripe checkout session
+    // Define pricing for each plan
+    const planPricing = {
+      'Starter': { amount: 900, name: 'Starter Plan' }, // $9.00
+      'Professional': { amount: 2900, name: 'Professional Plan' }, // $29.00
+      'Enterprise': { amount: 9900, name: 'Enterprise Plan' } // $99.00
+    };
+
+    const plan = planPricing[planName as keyof typeof planPricing];
+    if (!plan) {
+      throw new Error("Invalid plan name");
+    }
+
+    // Create Stripe checkout session with inline price data
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       line_items: [
         {
-          price: priceId,
+          price_data: {
+            currency: "usd",
+            product_data: {
+              name: plan.name,
+            },
+            unit_amount: plan.amount,
+            recurring: {
+              interval: "month",
+            },
+          },
           quantity: 1,
         },
       ],

@@ -33,15 +33,8 @@ export default function Pricing() {
 
   const handleGetStarted = async (planName: string) => {
     try {
-      const priceIds = {
-        'Starter': 'price_starter_monthly',
-        'Professional': 'price_professional_monthly',
-        'Enterprise': 'price_enterprise_monthly'
-      }
-
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: {
-          priceId: priceIds[planName as keyof typeof priceIds],
           planName: planName
         }
       })
