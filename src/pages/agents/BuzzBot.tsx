@@ -4,7 +4,7 @@ import { ArrowLeft, TrendingUp, Zap } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { ChatInterface } from "@/components/ChatInterface"
+import { WhatsAppChatInterface } from "@/components/WhatsAppChatInterface"
 import { Link } from "react-router-dom"
 
 const BuzzBot = () => {
@@ -27,7 +27,7 @@ const BuzzBot = () => {
 
   if (showChat) {
     return (
-      <ChatInterface
+      <WhatsAppChatInterface
         agent={agent}
         onClose={() => setShowChat(false)}
       />
