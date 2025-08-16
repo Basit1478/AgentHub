@@ -235,6 +235,42 @@ export type Database = {
           },
         ]
       }
+      voice_settings: {
+        Row: {
+          auto_speak: boolean | null
+          created_at: string
+          id: string
+          language_code: string | null
+          preferred_voice: string | null
+          updated_at: string
+          user_id: string
+          voice_pitch: number | null
+          voice_speed: number | null
+        }
+        Insert: {
+          auto_speak?: boolean | null
+          created_at?: string
+          id?: string
+          language_code?: string | null
+          preferred_voice?: string | null
+          updated_at?: string
+          user_id: string
+          voice_pitch?: number | null
+          voice_speed?: number | null
+        }
+        Update: {
+          auto_speak?: boolean | null
+          created_at?: string
+          id?: string
+          language_code?: string | null
+          preferred_voice?: string | null
+          updated_at?: string
+          user_id?: string
+          voice_pitch?: number | null
+          voice_speed?: number | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
