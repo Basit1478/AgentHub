@@ -153,7 +153,7 @@ export function WhatsAppChatInterface({ agent, onClose }: WhatsAppChatInterfaceP
         content: msg.content
       }))
 
-      const { data, error } = await supabase.functions.invoke('chat', {
+      const { data, error } = await supabase.functions.invoke('chat-with-gemini', {
         body: {
           messages: [...conversationHistory, { role: 'user', content: userMessage.content }],
           agentId: agent.id
