@@ -93,7 +93,19 @@ export function WhatsAppChatInterface({ agent, onClose }: WhatsAppChatInterfaceP
   }
 
   const sendMessage = async () => {
-    if (!message.trim() || isLoading || !user) return
+    if (!message.trim() || isLoading) return
+
+    // Check if user is authenticated
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to chat with agents",
+        variant: "destructive"
+      })
+      // Navigate to auth page
+      window.location.href = '/auth'
+      return
+    }
 
     // Check conversation limit
     try {
