@@ -37,7 +37,12 @@ serve(async (req) => {
 
     // Create Stripe checkout session with inline price data
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
+      payment_method_types: ["card", "link", "us_bank_account"],
+      payment_method_options: {
+        us_bank_account: {
+          verification_method: "instant",
+        },
+      },
       line_items: [
         {
           price_data: {
