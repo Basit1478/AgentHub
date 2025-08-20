@@ -56,6 +56,9 @@ export function WhatsAppChatInterface({ agent, onClose }: WhatsAppChatInterfaceP
   const [showVoiceChat, setShowVoiceChat] = useState(false)
   const [showLimitModal, setShowLimitModal] = useState(false)
   const [conversationData, setConversationData] = useState({ conversationsUsed: 0, plan: 'free' })
+  const [messageCount, setMessageCount] = useState(0)
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+  const [showFileUpload, setShowFileUpload] = useState(false)
   const { user } = useAuth()
   const inputRef = useRef<HTMLInputElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -107,31 +110,25 @@ export function WhatsAppChatInterface({ agent, onClose }: WhatsAppChatInterfaceP
       return
     }
 
-    // Check conversation limit
-    try {
-      const { data: limitCheck, error: limitError } = await supabase.functions.invoke('check-conversation-limit');
-      
-      if (limitError) {
-        toast({
-          title: "Error",
-          description: "Failed to check conversation limit",
-          variant: "destructive"
-        });
-        return;
+    // Increment message count and check for upgrade popup
+    const newMessageCount = messageCount + 1
+    setMessageCount(newMessageCount)
+    
+    // Show upgrade popup only after exactly 100 messages for free users
+    if (newMessageCount === 100 && user) {
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('plan')
+          .eq('user_id', user.id)
+          .single()
+        
+        if (profile?.plan === 'free') {
+          setShowUpgradeModal(true)
+        }
+      } catch (error) {
+        console.error('Error checking user plan:', error)
       }
-
-      if (!limitCheck.can_send) {
-        setConversationData({
-          conversationsUsed: limitCheck.conversations_used,
-          plan: limitCheck.plan
-        });
-        setShowLimitModal(true);
-        return;
-      }
-
-    } catch (error) {
-      console.error('Error checking conversation limit:', error);
-      return;
     }
 
     const userMessage: Message = {
@@ -400,9 +397,20 @@ export function WhatsAppChatInterface({ agent, onClose }: WhatsAppChatInterfaceP
         <div className="p-4 bg-background border-t border-border">
           <div className="flex items-center space-x-2">
             <Button
+              onClick={() => {
+                if (!user) {
+                  toast({
+                    title: "Authentication Required",
+                    description: "Please sign in to upload files",
+                    variant: "destructive"
+                  })
+                  return
+                }
+                setShowFileUpload(!showFileUpload)
+              }}
               variant="ghost"
               size="sm"
-              className="text-muted-foreground hover:text-primary p-2"
+              className={`text-muted-foreground hover:text-primary p-2 ${showFileUpload ? 'bg-primary/10 text-primary' : ''}`}
             >
               <Paperclip className="h-5 w-5" />
             </Button>
@@ -446,6 +454,94 @@ export function WhatsAppChatInterface({ agent, onClose }: WhatsAppChatInterfaceP
         conversationsUsed={conversationData.conversationsUsed}
         plan={conversationData.plan}
       />
+
+      {/* Upgrade to Premium Modal */}
+      {showUpgradeModal && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={(e) => e.target === e.currentTarget && setShowUpgradeModal(false)}
+        >
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.95, opacity: 0 }}
+            className="bg-background border border-border rounded-2xl p-6 max-w-sm w-full shadow-2xl"
+          >
+            <div className="text-center space-y-4">
+              <div className="w-16 h-16 bg-gradient-to-r from-primary to-primary/80 rounded-full flex items-center justify-center mx-auto">
+                <Bot className="h-8 w-8 text-white" />
+              </div>
+              
+              <div>
+                <h3 className="text-xl font-semibold mb-2">Upgrade to Premium</h3>
+                <p className="text-muted-foreground text-sm">
+                  You've sent 100 messages! Upgrade to Premium for unlimited conversations, priority support, and advanced features.
+                </p>
+              </div>
+              
+              <div className="flex flex-col gap-3">
+                <Button
+                  onClick={() => {
+                    setShowUpgradeModal(false)
+                    window.location.href = '/pricing'
+                  }}
+                  className="w-full bg-gradient-to-r from-primary to-primary/80 hover:opacity-90"
+                >
+                  Upgrade to Premium
+                </Button>
+                <Button
+                  onClick={() => setShowUpgradeModal(false)}
+                  variant="outline"
+                  className="w-full"
+                >
+                  Continue with Free Plan
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+
+      {/* File Upload Modal */}
+      {showFileUpload && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={(e) => e.target === e.currentTarget && setShowFileUpload(false)}
+        >
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.95, opacity: 0 }}
+            className="bg-background border border-border rounded-2xl p-6 max-w-sm w-full shadow-2xl"
+          >
+            <div className="text-center space-y-4">
+              <h3 className="text-lg font-semibold">Upload Document</h3>
+              <p className="text-muted-foreground text-sm">
+                Select a document to share with {agent.name}
+              </p>
+              
+              <div className="border-2 border-dashed border-border rounded-lg p-8 hover:border-primary/50 transition-colors cursor-pointer">
+                <Paperclip className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">Click to select file</p>
+              </div>
+              
+              <Button
+                onClick={() => setShowFileUpload(false)}
+                variant="outline"
+                className="w-full"
+              >
+                Cancel
+              </Button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
     </motion.div>
   )
 }
