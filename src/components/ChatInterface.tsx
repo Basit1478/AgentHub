@@ -178,7 +178,16 @@ export function ChatInterface({ agent, onClose }: ChatInterfaceProps) {
   }
 
   const sendMessage = async () => {
-    if (!message.trim() || isLoading || !user) return
+    if (!message.trim() || isLoading) return
+    
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to chat with agents",
+        variant: "destructive"
+      })
+      return
+    }
 
     // Check conversation limit before sending
     try {
@@ -536,7 +545,17 @@ export function ChatInterface({ agent, onClose }: ChatInterfaceProps) {
             
             {/* File Upload Button */}
             <Button
-              onClick={() => setShowFileUpload(!showFileUpload)}
+              onClick={() => {
+                if (!user) {
+                  toast({
+                    title: "Authentication Required",
+                    description: "Please sign in to upload files",
+                    variant: "destructive"
+                  })
+                  return
+                }
+                setShowFileUpload(!showFileUpload)
+              }}
               variant="outline"
               size="icon"
               className={`rounded-xl transition-all ${showFileUpload ? 'bg-primary/10 border-primary text-primary' : ''}`}
@@ -562,7 +581,7 @@ export function ChatInterface({ agent, onClose }: ChatInterfaceProps) {
             {/* Send Button */}
             <Button
               onClick={sendMessage}
-              disabled={!message.trim() || isLoading}
+              disabled={!message.trim() || isLoading || !user}
               className={`rounded-xl px-6 transition-all bg-gradient-to-r ${agent.color} hover:opacity-90`}
             >
               {isLoading ? (
