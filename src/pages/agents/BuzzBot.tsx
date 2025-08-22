@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { WhatsAppChatInterface } from "@/components/WhatsAppChatInterface"
-import { Link } from "react-router-dom"
+import Link from "next/link"
 
-const BuzzBot = () => {
+const buzzBot = () => {
   const [showChat, setShowChat] = useState(false)
 
   const agent = {
@@ -43,7 +43,7 @@ const BuzzBot = () => {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <Link to="/agents" className="inline-flex items-center text-muted-foreground hover:text-primary mb-6 transition-colors">
+          <Link href="/agents" className="inline-flex items-center text-muted-foreground hover:text-primary mb-6 transition-colors">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Agents
           </Link>
@@ -119,4 +119,4 @@ const BuzzBot = () => {
   )
 }
 
-export default BuzzBot
+export default buzzBot

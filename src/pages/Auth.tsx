@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React,{ useState, useEffect } from "react";
+import { useRouter } from "next/router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Mail, Lock, User, Chrome, Github } from "lucide-react";
 
 const Auth = () => {
-  const navigate = useNavigate();
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [isSocialLoading, setIsSocialLoading] = useState(false);
   const [email, setEmail] = useState("");
@@ -21,11 +21,11 @@ const Auth = () => {
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        navigate("/");
+        router.push("/");
       }
     };
     checkUser();
-  }, [navigate]);
+  }, [router]);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -118,7 +118,7 @@ const Auth = () => {
           title: "Welcome back!",
           description: "Successfully signed in",
         });
-        navigate("/");
+        router.push("/");
       }
     } catch (error) {
       toast({

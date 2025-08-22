@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { MessageSquare, Clock, Crown } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/router';
 
 interface ConversationLimitModalProps {
   isOpen: boolean;
@@ -18,11 +18,11 @@ export function ConversationLimitModal({
   conversationsUsed, 
   plan 
 }: ConversationLimitModalProps) {
-  const navigate = useNavigate();
+  const router = useRouter();
 
   const handleUpgrade = () => {
     onClose();
-    navigate('/pricing');
+    router.push('/pricing');
   };
 
   const daysUntilReset = () => {

@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/accordion"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Link } from "react-router-dom"
+import Link from "next/link"
 import { HelpCircle, MessageCircle, ArrowRight } from "lucide-react"
 
 export default function FAQ() {
@@ -195,7 +195,7 @@ export default function FAQ() {
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button variant="gradient" size="lg" asChild className="group">
-                  <Link to="/contact">
+                  <Link href="/contact">
                     <MessageCircle className="mr-2 h-5 w-5" />
                     Contact Support
                     <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
@@ -203,7 +203,7 @@ export default function FAQ() {
                 </Button>
                 
                 <Button variant="outline" size="lg" asChild>
-                  <Link to="/agents">
+                  <Link href="/agents">
                     Explore AI Agents
                   </Link>
                 </Button>
@@ -213,12 +213,12 @@ export default function FAQ() {
                 <p className="text-sm text-muted-foreground">
                   <strong>Quick tip:</strong> You can also reach us directly on WhatsApp at{" "}
                   <a
-                    href="https://wa.me/03332011256"
+                    href="https://wa.me/03703168969"
                     className="text-primary hover:underline"
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    +92 333 2011256
+                    +92 370 3168969
                   </a>{" "}
                   for immediate assistance.
                 </p>

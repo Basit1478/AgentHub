@@ -5,8 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
 import { Users, TrendingUp, Target, MessageSquare, Bot, Sparkles, Zap } from "lucide-react"
-import { ChatInterface } from "@/components/ChatInterface"
-import { Link } from "react-router-dom"
+import  Link  from "next/link"
 
 interface Message {
   id: string
@@ -16,7 +15,6 @@ interface Message {
 }
 
 export default function Agents() {
-  const [chatAgent, setChatAgent] = useState<any>(null)
   const { toast } = useToast()
 
   const containerVariants = {
@@ -70,20 +68,20 @@ export default function Agents() {
       tasks: [
         "Recruitment and hiring strategies",
         "Employee onboarding processes", 
-        "Performance evaluation systems",
+        "Performance evaluatio systems",
         "HR policy development",
         "Team building initiatives"
       ]
     },
     {
       id: "buzzbot",
-      name: "BuzzBot", 
+      name: "Buzzbot", 
       title: "Marketing Expert",
       icon: TrendingUp,
       color: "from-emerald-600 to-teal-600", 
       description: "📣 Your creative marketing genius for campaigns and brand growth",
       specialties: ["Digital Marketing", "Brand Strategy", "Campaign Management", "Social Media"],
-      systemPrompt: `You are BuzzBot, a creative marketing expert with expertise in digital marketing, brand building, and campaign strategies. You help create engaging content, optimize marketing funnels, and drive growth. Auto-detect the user's language and respond in the same language. Support: English, Urdu, Hindi, Arabic, French, Spanish, Chinese.`,
+      systemPrompt: `You are buzzbot, a creative marketing expert with expertise in digital marketing, brand building, and campaign strategies. You help create engaging content, optimize marketing funnels, and drive growth. Auto-detect the user's language and respond in the same language. Support: English, Urdu, Hindi, Arabic, French, Spanish, Chinese.`,
       tasks: [
         "Marketing campaign creation",
         "Social media strategies",
@@ -94,13 +92,7 @@ export default function Agents() {
     }
   ]
 
-  const handleAgentSelect = (agent: any) => {
-    setChatAgent(agent)
-  }
 
-  const closeChatInterface = () => {
-    setChatAgent(null)
-  }
 
   return (
     <div className="min-h-screen pt-24 pb-16 bg-gradient-to-br from-background via-background to-accent/5">
@@ -123,14 +115,14 @@ export default function Agents() {
             variants={itemVariants}
             className="text-4xl md:text-6xl font-bold gradient-text mb-6"
           >
-            RaahBot for Teams
+           AgentHub
           </motion.h1>
           
           <motion.p
             variants={itemVariants}
             className="text-xl text-muted-foreground mb-8 max-w-3xl mx-auto"
           >
-            Meet your AI-powered team: CEO Agent for strategy, HunarBot for HR, and BuzzBot for marketing. 
+            Meet your AI-powered team: CEO Agent for strategy, HunarBot for HR, and buzzbot for marketing. 
             Each agent speaks your language and provides expert guidance 24/7.
           </motion.p>
         </motion.div>
@@ -215,7 +207,7 @@ export default function Agents() {
                   </div>
                   
                   <div className="space-y-3">
-                    <Link to={`/agents/${agent.id}`} className="block">
+                    <Link href={`/agents/${agent.id}`} className="block">
                       <Button
                         variant="gradient"
                         className="w-full group relative overflow-hidden"
@@ -236,15 +228,6 @@ export default function Agents() {
                         />
                       </Button>
                     </Link>
-                    
-                    <Button
-                      onClick={() => handleAgentSelect(agent)}
-                      variant="outline"
-                      className="w-full"
-                    >
-                      <MessageSquare className="h-4 w-4 mr-2" />
-                      Quick Chat
-                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -302,14 +285,7 @@ export default function Agents() {
       </div>
 
       {/* Chat Interface Modal */}
-      <AnimatePresence>
-        {chatAgent && (
-          <ChatInterface
-            agent={chatAgent}
-            onClose={closeChatInterface}
-          />
-        )}
-      </AnimatePresence>
+      
     </div>
   )
 }

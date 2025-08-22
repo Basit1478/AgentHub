@@ -94,7 +94,7 @@ serve(async (req) => {
     const systemPrompts = {
       'ceo': 'You are a seasoned CEO with 20+ years of experience leading successful companies. You provide strategic guidance, leadership insights, and help with high-level business decisions. You can search Google for industry data, competitor information, and business insights, as well as find business locations and meeting venues using Google Maps. You speak with authority but remain approachable. Auto-detect the user\'s language and respond in the same language. Support: English, Urdu, Hindi, Arabic, French, Spanish, Chinese.',
       'hunarbot': 'You are HunarBot, an expert HR professional with deep knowledge in human resources, talent management, and organizational development. You help with hiring, employee engagement, and HR best practices. You can search Google for current HR trends, salary data, and company information, as well as find office locations and coworking spaces using Google Maps. Auto-detect the user\'s language and respond in the same language. Support: English, Urdu, Hindi, Arabic, French, Spanish, Chinese.',
-      'buzzbot': 'You are BuzzBot, a creative marketing expert with expertise in digital marketing, brand building, and campaign strategies. You help create engaging content, optimize marketing funnels, and drive growth. You can search Google for market trends, competitor analysis, and industry insights, as well as find local businesses and events using Google Maps for location-based marketing. Auto-detect the user\'s language and respond in the same language. Support: English, Urdu, Hindi, Arabic, French, Spanish, Chinese.'
+      'buzzbot': 'You are buzzbot, a creative marketing expert with expertise in digital marketing, brand building, and campaign strategies. You help create engaging content, optimize marketing funnels, and drive growth. You can search Google for market trends, competitor analysis, and industry insights, as well as find local businesses and events using Google Maps for location-based marketing. Auto-detect the user\'s language and respond in the same language. Support: English, Urdu, Hindi, Arabic, French, Spanish, Chinese.'
     };
 
     const systemPrompt = systemPrompts[agentId as keyof typeof systemPrompts] || systemPrompts.ceo;
@@ -109,7 +109,9 @@ serve(async (req) => {
       const query = latestMessage.content.replace(/search for|google/gi, '').trim();
       if (query) {
         const searchResults = await searchGoogle(query);
-        enhancedMessage += `\n\n${searchResults}`;
+        enhancedMessage += `
+
+${searchResults}`;
       }
     }
 
@@ -119,31 +121,36 @@ serve(async (req) => {
       const query = latestMessage.content.replace(/find places|location|near me/gi, '').trim();
       if (query) {
         const mapResults = await searchPlaces(query);
-        enhancedMessage += `\n\n${mapResults}`;
+        enhancedMessage += `
+
+${mapResults}`;
       }
     }
 
     // Add file information if files were uploaded
     if (files && files.length > 0) {
-      const fileInfo = files.map((file: any) => `- ${file.name} (${file.type})`).join('\n');
-      enhancedMessage += `\n\nFiles uploaded:\n${fileInfo}`;
+      const fileInfo = files.map((file: any) => `- ${file.name} (${file.type})`).join('
+');
+      enhancedMessage += `
+
+Files uploaded:
+${fileInfo}`;
     }
 
     // Prepare messages for Gemini API
-    const geminiMessages = [
-      {
-        role: 'user',
-        parts: [{ text: systemPrompt }]
-      },
-      ...messages.slice(0, -1).map((msg: any) => ({
-        role: msg.role === 'user' ? 'user' : 'model',
-        parts: [{ text: msg.content }]
-      })),
-      {
-        role: 'user',
-        parts: [{ text: enhancedMessage }]
-      }
-    ];
+    const geminiMessages = messages.map((msg: any) => ({
+      role: msg.role === 'user' ? 'user' : 'model',
+      parts: [{ text: msg.content }],
+    }));
+
+    if (geminiMessages.length > 0) {
+      geminiMessages[geminiMessages.length - 1].parts[0].text = enhancedMessage;
+    }
+
+    // Prepend system prompt to the first message of the conversation
+    if (messages.length === 1) {
+      geminiMessages[0].parts[0].text = `${systemPrompt}\n\n${geminiMessages[0].parts[0].text}`;
+    }
 
     console.log('Sending request to Gemini API for agent:', agentId);
 
@@ -156,10 +163,10 @@ serve(async (req) => {
       body: JSON.stringify({
         contents: geminiMessages,
         generationConfig: {
-          temperature: 0.7,
+          temperature: 0.4,
           topK: 40,
           topP: 0.95,
-          maxOutputTokens: 2048,
+          maxOutputTokens: 8192,
         },
       }),
     });

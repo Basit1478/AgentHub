@@ -67,13 +67,13 @@ serve(async (req) => {
 
     // System prompt based on agent
     const systemPrompts = {
-      'ceo-agent': 'You are a CEO Coach AI assistant. Help with business strategy, leadership, and executive decision-making.',
-      'hunar-bot': 'You are HunarBot, an AI assistant focused on skill development and career growth.',
-      'buzz-bot': 'You are BuzzBot, an AI assistant for marketing, social media, and brand development.'
+      'ceo-agent': 'You are a CEO Coach AI assistant. Help with business strategy, leadership, and executive decision-making. Auto-detect the user\'s language and respond in the same language. Support: English, Roman Urdu, and provide English transcription.',
+      'hunar-bot': 'You are HunarBot, an AI assistant focused on skill development and career growth. Auto-detect the user\'s language and respond in the same language. Support: English, Roman Urdu, and provide English transcription.',
+      'buzz-bot': 'You are BuzzBot, an AI assistant for marketing, social media, and brand development. Auto-detect the user\'s language and respond in the same language. Support: English, Roman Urdu, and provide English transcription.'
     };
 
     const systemPrompt = systemPrompts[agentId as keyof typeof systemPrompts] || 
-      'You are a helpful AI assistant.';
+      'You are a HR MARKETING and Strategy Agent. Auto-detect the user\'s language and respond in the same language. Support: English, Roman Urdu, and provide English transcription.';
 
     // Add system message
     const allMessages = [

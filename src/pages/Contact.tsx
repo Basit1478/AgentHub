@@ -7,7 +7,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { MapPin, Phone, Mail, Clock, Send } from "lucide-react"
-import { FaInstagram, FaWhatsapp } from "react-icons/fa"
+import { FaInstagram, FaLinkedin, FaWhatsapp } from "react-icons/fa"
+import { FaXTwitter } from "react-icons/fa6"
 
 export default function Contact() {
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -52,19 +53,19 @@ export default function Contact() {
     {
       icon: MapPin,
       title: "Address",
-      content: "Lahore, Punjab, Pakistan",
+      content: "Karachi, Sindh, Pakistan",
     },
     {
       icon: Phone,
       title: "Phone",
-      content: "+92 333 2011256",
-      link: "tel:+923332011256",
+      content: "+92 370 3168969",
+      link: "tel:+923703168969",
     },
     {
       icon: Mail,
       title: "Email",
-      content: "contact@aiagents.com",
-      link: "mailto:contact@aiagents.com",
+      content: "ba876943@gmail.com",
+      link: "mailto:ba876943@gmail.com",
     },
     {
       icon: Clock,
@@ -159,6 +160,15 @@ export default function Contact() {
                     </div>
                     
                     <div className="space-y-2">
+                      <Label htmlFor="Phone number">Phone Number</Label>
+                      <Input
+                        id="Phone number"
+                        placeholder="Your Phone Number"
+                        className="transition-all focus:ring-2 focus:ring-primary"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
                       <Label htmlFor="subject">Subject</Label>
                       <Input
                         id="subject"
@@ -237,7 +247,7 @@ export default function Contact() {
                   <CardTitle className="text-xl gradient-text">Connect with Us</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex space-x-4">
+                  <div className="flex  p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                     <a
                       href="https://instagram.com/basit_ali_official_2005"
                       target="_blank"
@@ -252,7 +262,7 @@ export default function Contact() {
                     </a>
                     
                     <a
-                      href="https://wa.me/03332011256"
+                      href="https://wa.me/03703168969"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center space-x-3 p-4 bg-green-500 text-white rounded-lg hover:scale-105 transition-transform group"
@@ -260,7 +270,33 @@ export default function Contact() {
                       <FaWhatsapp className="h-6 w-6" />
                       <div>
                         <p className="font-semibold">WhatsApp</p>
-                        <p className="text-sm opacity-90">+92 333 2011256</p>
+                        <p className="text-sm opacity-90">+92 370 3168969</p>
+                      </div>
+                    </a>
+
+                    <a
+                      href="https://www.linkedin.com/in/basit-ali-baloch-738285253/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center space-x-3 p-4 bg-blue-500 text-white rounded-lg hover:scale-105 transition-transform group"
+                    >
+                      <FaLinkedin className="h-6 w-6" />
+                      <div>
+                        <p className="font-semibold">LinkedIn</p>
+                        <p className="text-sm opacity-90">@basitalibaloch</p>
+                      </div>
+                    </a>
+
+                    <a
+                      href="https://x.com/basitali2405"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center space-x-3 p-4 bg-black text-white rounded-lg hover:scale-105 transition-transform group"
+                    >
+                      <FaXTwitter className="h-6 w-6" />
+                      <div>
+                        <p className="font-semibold">twitter</p>
+                        <p className="text-sm opacity-90">@basitali2405</p>
                       </div>
                     </a>
                   </div>

@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "strict": true,
+    "lib": ["dom", "esnext"],
+    "types": ["deno.ns"],
+    "esModuleInterop": true,
+    "skipLibCheck": true
+  }
+}

@@ -27,9 +27,9 @@ export default function About() {
   }
 
   const stats = [
-    { icon: Users, label: "Happy Clients", value: "1000+" },
+    { icon: Users, label: "Happy Clients", value: "100+" },
     { icon: Target, label: "Success Rate", value: "99%" },
-    { icon: Award, label: "Awards Won", value: "25+" },
+    
   ]
 
   return (
@@ -140,27 +140,26 @@ export default function About() {
                   <p className="text-muted-foreground mb-4">Chief Executive Officer & Co-Founder</p>
                   
                   <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
-                    Basit Ali is a visionary entrepreneur and AI expert with over 10 years of experience 
-                    in artificial intelligence and machine learning. He founded AI Agents with the goal 
-                    of making advanced AI technology accessible to businesses worldwide. Under his leadership, 
-                    the company has grown to serve thousands of clients globally.
+                    Basit Ali is a visionary entrepreneur and AI expert with over 1.5 years of experience 
+                    in artificial intelligence and Full stack development. He founded AI Agents with the goal 
+                    of making advanced AI technology accessible to businesses worldwide.
                   </p>
                   
                   <div className="flex justify-center space-x-4">
                     <a
-                      href="#"
+                      href="https://www.linkedin.com/in/basit-ali-baloch-738285253/"
                       className="p-2 rounded-lg bg-muted hover:bg-primary hover:text-primary-foreground transition-colors"
                     >
                       <Linkedin className="h-5 w-5" />
                     </a>
                     <a
-                      href="#"
+                      href="https://x.com/basitali2405"
                       className="p-2 rounded-lg bg-muted hover:bg-primary hover:text-primary-foreground transition-colors"
                     >
                       <Twitter className="h-5 w-5" />
                     </a>
                     <a
-                      href="#"
+                      href="https://mail.google.com/mail/ba876943@gmail.com"
                       className="p-2 rounded-lg bg-muted hover:bg-primary hover:text-primary-foreground transition-colors"
                     >
                       <Mail className="h-5 w-5" />
@@ -191,15 +190,15 @@ export default function About() {
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 pl-[282px] md:grid-cols-3 gap-8">
             {stats.map((stat, index) => (
               <motion.div
                 key={stat.label}
                 variants={itemVariants}
                 className="text-center"
               >
-                <Card className="p-8 hover:shadow-lg transition-shadow">
-                  <div className="mx-auto mb-4 p-4 bg-gradient-primary rounded-2xl w-fit">
+                <Card className="p-8  hover:shadow-lg transition-shadow">
+                  <div className="mx-auto mb-4  p-4 bg-gradient-primary rounded-2xl w-fit">
                     <stat.icon className="h-8 w-8 text-white" />
                   </div>
                   <h3 className="text-3xl font-bold mb-2 gradient-text">{stat.value}</h3>

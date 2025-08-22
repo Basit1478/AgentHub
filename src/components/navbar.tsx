@@ -1,6 +1,7 @@
 import React, { useState } from "react"
 import { motion } from "framer-motion"
-import { Link, useLocation } from "react-router-dom"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { useAuth } from "@/contexts/AuthContext"
@@ -10,7 +11,7 @@ import { Menu, X, Bot, User, LogOut, Settings } from "lucide-react"
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
-  const location = useLocation()
+  const pathname = usePathname()
   const { user, signOut, loading } = useAuth()
 
   const navigation = [
@@ -22,14 +23,14 @@ export function Navbar() {
     { name: "Contact", href: "/contact" },
   ]
 
-  const isActive = (href: string) => location.pathname === href
+  const isActive = (href: string) => pathname === href
 
   return (
     <nav className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-border">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2">
+          <Link href="/" className="flex items-center space-x-2">
             <motion.div
               className="p-2 bg-gradient-primary rounded-lg"
               whileHover={{ scale: 1.05 }}
@@ -37,7 +38,7 @@ export function Navbar() {
             >
               <Bot className="h-6 w-6 text-white" />
             </motion.div>
-            <span className="text-xl font-bold gradient-text">RaahBot for Teams</span>
+            <span className="text-xl font-bold gradient-text">AgentHub</span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -45,7 +46,7 @@ export function Navbar() {
             {navigation.map((item) => (
               <Link
                 key={item.name}
-                to={item.href}
+                href={item.href}
                 className={`text-sm font-medium transition-colors hover:text-primary ${
                   isActive(item.href)
                     ? "text-primary border-b-2 border-primary"
@@ -84,13 +85,13 @@ export function Navbar() {
                   </div>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link to="/agents" className="flex items-center">
+                    <Link href="/agents" className="flex items-center">
                       <Bot className="mr-2 h-4 w-4" />
                       <span>My Agents</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link to="/pricing" className="flex items-center">
+                    <Link href="/pricing" className="flex items-center">
                       <Settings className="mr-2 h-4 w-4" />
                       <span>Billing</span>
                     </Link>
@@ -108,10 +109,10 @@ export function Navbar() {
             ) : (
               <>
                 <Button variant="ghost" asChild>
-                  <Link to="/auth">Sign In</Link>
+                  <Link href="/auth">Sign In</Link>
                 </Button>
                 <Button variant="gradient" asChild>
-                  <Link to="/auth">Get Started</Link>
+                  <Link href="/auth">Get Started</Link>
                 </Button>
               </>
             )}
@@ -143,7 +144,7 @@ export function Navbar() {
             {navigation.map((item) => (
               <Link
                 key={item.name}
-                to={item.href}
+                href={item.href}
                 className={`block px-3 py-2 text-base font-medium rounded-md transition-colors ${
                   isActive(item.href)
                     ? "text-primary bg-primary/10"
@@ -181,10 +182,10 @@ export function Navbar() {
               ) : (
                 <>
                   <Button variant="ghost" className="flex-1" asChild>
-                    <Link to="/auth" onClick={() => setIsOpen(false)}>Sign In</Link>
+                    <Link href="/auth" onClick={() => setIsOpen(false)}>Sign In</Link>
                   </Button>
                   <Button variant="gradient" className="flex-1" asChild>
-                    <Link to="/auth" onClick={() => setIsOpen(false)}>Get Started</Link>
+                    <Link href="/auth" onClick={() => setIsOpen(false)}>Get Started</Link>
                   </Button>
                 </>
               )}
