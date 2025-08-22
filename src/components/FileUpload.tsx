@@ -127,7 +127,10 @@ export function FileUpload({
         }
         
         const { data, error } = await supabase.functions.invoke('file-upload', {
-          body: formData
+          body: formData,
+          headers: {
+            Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+          }
         })
         
         if (error) throw error
