@@ -93,7 +93,7 @@ export function VoiceChat({
   const loadVoices = () => {
     const availableVoices = speechSynthesis.getVoices()
     const voiceOptions: VoiceOption[] = availableVoices
-      .filter(voice => voice.lang.includes('en') || voice.lang.includes('es') || voice.lang.includes('fr') || voice.lang.includes('de') || voice.lang.includes('it') || voice.lang.includes('pt'))
+      .filter(voice => voice.lang.includes('en') || voice.lang.includes('ur'))
       .map(voice => ({
         name: voice.name,
         lang: voice.lang,
@@ -114,13 +114,8 @@ export function VoiceChat({
       'en-GB': 'British',
       'en-AU': 'Australian',
       'en-CA': 'Canadian',
-      'en-IN': 'Indian',
-      'es-ES': 'Spanish',
-      'es-MX': 'Mexican',
-      'fr-FR': 'French',
-      'de-DE': 'German',
-      'it-IT': 'Italian',
-      'pt-BR': 'Brazilian'
+      'ur-PK': 'Urdu',
+      'ur': 'Urdu'
     }
     return accents[lang] || lang
   }
