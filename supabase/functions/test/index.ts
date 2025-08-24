@@ -1,36 +1,39 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import type { NextApiRequest, NextApiResponse } from "next";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-serve(async (req) => {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    Object.entries(corsHeaders).forEach(([key, value]) => res.setHeader(key, value));
+    return res.status(204).end();
+  }
+
+  if (req.method !== "GET") {
+    return res.status(405).json({ error: "Method Not Allowed" });
   }
 
   try {
     console.log("Test function called successfully!");
     
-    return new Response(JSON.stringify({ 
+    Object.entries(corsHeaders).forEach(([key, value]) => res.setHeader(key, value));
+    res.setHeader("Content-Type", "application/json");
+    return res.status(200).json({
       message: "Backend is working!",
       timestamp: new Date().toISOString(),
       method: req.method,
       url: req.url
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Test function error:", error);
-    return new Response(JSON.stringify({ 
+    Object.entries(corsHeaders).forEach(([key, value]) => res.setHeader(key, value));
+    res.setHeader("Content-Type", "application/json");
+    return res.status(500).json({
       error: "Test function failed",
-      details: error.message 
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
+      details: error.message
     });
   }
-});
+}

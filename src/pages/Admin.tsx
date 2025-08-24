@@ -22,14 +22,13 @@ export default function Admin() {
         const { data, error } = await supabase
           .from('profiles')
           .select('is_admin')
-          .eq('user_id', user.id)
-          .single();
+          .eq('user_id', user.id);
 
         if (error) {
           console.error('Error checking admin status:', error);
           setIsAdmin(false);
         } else {
-          setIsAdmin(data?.is_admin || false);
+          setIsAdmin(data?.[0]?.is_admin || false);
         }
       } catch (error) {
         console.error('Error:', error);

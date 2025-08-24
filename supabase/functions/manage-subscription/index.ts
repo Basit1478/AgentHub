@@ -1,29 +1,39 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@14.21.0";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import type { NextApiRequest, NextApiResponse } from "next";
+import Stripe from "stripe";
+import { createClient } from "@supabase/supabase-js";
+
+interface StripeSubscriptionWithPeriods extends Stripe.Subscription {
+  current_period_start: number;
+  current_period_end: number;
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-serve(async (req) => {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    Object.entries(corsHeaders).forEach(([key, value]) => res.setHeader(key, value));
+    return res.status(204).end();
+  }
+
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method Not Allowed" });
   }
 
   try {
-    const { action } = await req.json();
+    const { action } = req.body;
     
     // Get authenticated user
-    const authHeader = req.headers.get("Authorization");
+    const authHeader = req.headers.authorization;
     if (!authHeader) {
       throw new Error("No authorization header");
     }
 
     const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+      process.env.SUPABASE_URL ?? "",
+      process.env.SUPABASE_SERVICE_ROLE_KEY ?? ""
     );
 
     const token = authHeader.replace("Bearer ", "");
@@ -34,8 +44,8 @@ serve(async (req) => {
       throw new Error("User not authenticated");
     }
 
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
-      apiVersion: "2023-10-16",
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
+      apiVersion: "2025-07-30.basil",
     });
 
     if (action === "check") {
@@ -50,11 +60,11 @@ serve(async (req) => {
           plan_name: "free",
         });
         
-        return new Response(JSON.stringify({ 
-          subscribed: false, 
-          plan: "free" 
-        }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        Object.entries(corsHeaders).forEach(([key, value]) => res.setHeader(key, value));
+        res.setHeader("Content-Type", "application/json");
+        return res.status(200).json({
+          subscribed: false,
+          plan: "free"
         });
       }
 
@@ -69,7 +79,7 @@ serve(async (req) => {
       let planName = "free";
       
       if (hasActiveSub) {
-        const subscription = subscriptions.data[0];
+        const subscription = subscriptions.data[0] as StripeSubscriptionWithPeriods;
         const priceId = subscription.items.data[0].price.id;
         const price = await stripe.prices.retrieve(priceId);
         
@@ -85,16 +95,16 @@ serve(async (req) => {
           stripe_subscription_id: subscription.id,
           plan_name: planName,
           status: "active",
-          current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-          current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+          current_period_start: null, // TODO: Revisit how to get this value if needed, as it might be deprecated in Stripe Subscription object
+          current_period_end: null, // TODO: Revisit how to get this value if needed, as it might be deprecated in Stripe Subscription object
         });
       }
 
-      return new Response(JSON.stringify({ 
-        subscribed: hasActiveSub, 
-        plan: planName 
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      Object.entries(corsHeaders).forEach(([key, value]) => res.setHeader(key, value));
+      res.setHeader("Content-Type", "application/json");
+      return res.status(200).json({
+        subscribed: hasActiveSub,
+        plan: planName
       });
     }
 
@@ -108,20 +118,19 @@ serve(async (req) => {
 
       const portalSession = await stripe.billingPortal.sessions.create({
         customer: customers.data[0].id,
-        return_url: `${req.headers.get("origin")}/pricing`,
+        return_url: `${req.headers.host}/pricing`,
       });
 
-      return new Response(JSON.stringify({ url: portalSession.url }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      Object.entries(corsHeaders).forEach(([key, value]) => res.setHeader(key, value));
+      res.setHeader("Content-Type", "application/json");
+      return res.status(200).json({ url: portalSession.url });
     }
 
     throw new Error("Invalid action");
-  } catch (error) {
+  } catch (error: any) {
     console.error("Subscription management error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
+    Object.entries(corsHeaders).forEach(([key, value]) => res.setHeader(key, value));
+    res.setHeader("Content-Type", "application/json");
+    return res.status(500).json({ error: error.message });
   }
-});
+}

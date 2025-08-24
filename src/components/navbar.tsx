@@ -14,9 +14,9 @@ export function Navbar() {
   const pathname = usePathname()
   const { user, signOut, loading } = useAuth()
 
-  const navigation = [
+  const navigationItems: { name: string; href: string }[] = [
     { name: "Home", href: "/" },
-    { name: "About", href: "/about" },
+    { name: "About", href: "/about-us" },
     { name: "Agents", href: "/agents" },
     { name: "Pricing", href: "/pricing" },
     { name: "FAQ", href: "/faq" },
@@ -43,7 +43,7 @@ export function Navbar() {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
-            {navigation.map((item) => (
+            {navigationItems.map((item) => (
               <Link
                 key={item.name}
                 href={item.href}
@@ -141,7 +141,7 @@ export function Navbar() {
           className="md:hidden bg-background border-b border-border"
         >
           <div className="px-2 pt-2 pb-3 space-y-1">
-            {navigation.map((item) => (
+            {navigationItems.map((item) => (
               <Link
                 key={item.name}
                 href={item.href}

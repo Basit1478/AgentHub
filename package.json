@@ -1,5 +1,5 @@
 {
-  "name": "ai-powered-agent-verse",
+  "name": "agenthub",
   "private": true,
   "version": "0.1.0",
   "scripts": {
@@ -46,6 +46,7 @@
     "@supabase/supabase-js": "^2.50.5",
     "@tanstack/react-query": "^5.56.2",
     "@types/dom-speech-recognition": "^0.0.6",
+    "@types/stripe": "^8.0.416",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
@@ -53,7 +54,8 @@
     "deno": "^2.4.4",
     "embla-carousel-react": "^8.3.0",
     "formidable": "^3.5.4",
-    "framer-motion": "^12.23.3",
+    "framer-motion": "^12.23.12",
+    "g": "^2.0.1",
     "input-otp": "^1.2.4",
     "lucide-react": "^0.462.0",
     "next": "^14.2.31",
@@ -69,12 +71,14 @@
     "readable-stream": "^4.7.0",
     "recharts": "^2.12.7",
     "sonner": "^1.5.0",
+    "stripe": "^18.4.0",
     "supabase": "^2.34.3",
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
     "three": "^0.179.1",
     "types": "^0.1.1",
     "vaul": "^0.9.3",
+    "vercel": "^46.0.2",
     "zod": "^3.23.8"
   },
   "devDependencies": {

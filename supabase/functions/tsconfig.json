@@ -4,9 +4,9 @@
     "module": "ESNext",
     "moduleResolution": "node",
     "strict": true,
-    "lib": ["dom", "esnext"],
-    "types": ["deno.ns"],
+    "lib": ["esnext", "dom.iterable"],
     "esModuleInterop": true,
     "skipLibCheck": true
-  }
+  },
+  "include": ["**/*.ts", "global.d.ts"]
 }

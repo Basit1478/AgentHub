@@ -1,8 +1,1 @@
-{
-  "/_app": "pages/_app.js",
-  "/_error": "pages/_error.js",
-  "/_document": "pages/_document.js",
-  "/agents": "pages/agents.js",
-  "/contact": "pages/contact.js",
-  "/": "pages/index.js"
-}
+{"/_app":"pages/_app.js","/NotFound":"pages/NotFound.html","/about-us":"pages/about-us.html","/admin":"pages/admin.html","/agents/[agentId]":"pages/agents/[agentId].html","/agents":"pages/agents.html","/api/transcribe":"pages/api/transcribe.js","/auth":"pages/auth.html","/chat":"pages/chat.html","/contact":"pages/contact.html","/faq":"pages/faq.html","/":"pages/index.html","/pricing":"pages/pricing.html","/_error":"pages/_error.js","/_document":"pages/_document.js","/404":"pages/404.html"}

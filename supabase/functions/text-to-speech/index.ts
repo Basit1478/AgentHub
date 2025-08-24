@@ -1,50 +1,94 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import type { NextApiRequest, NextApiResponse } from "next";
+import { createClient } from "@supabase/supabase-js";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method === "OPTIONS") {
+    Object.entries(corsHeaders).forEach(([key, value]) => res.setHeader(key, value));
+    return res.status(204).end();
+  }
+
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method Not Allowed" });
   }
 
   try {
-    const { text, voice, language } = await req.json()
+    const { text, voiceId = "21m00TNDgl4p4hq6zOiq", language = "en-US" } = req.body; // Default to a common voice
 
     if (!text) {
-      throw new Error('Text is required')
+      throw new Error("Text is required");
     }
 
-    // For free TTS, we'll use the browser's built-in speech synthesis
-    // This endpoint will return voice configuration
-    const voiceConfig = {
-      text,
-      voice: voice || 'en-US',
-      language: language || 'en-US',
-      rate: 0.9,
-      pitch: 1.0,
-      volume: 1.0
+    const elevenLabsApiKey = process.env.ELEVENLABS_API_KEY;
+    if (!elevenLabsApiKey) {
+      throw new Error("ELEVENLABS_API_KEY is not configured.");
     }
 
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        voiceConfig,
-        message: 'Voice configuration ready for client-side synthesis'
-      }),
+    const elevenLabsResponse = await fetch(
+      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      },
-    )
-  } catch (error) {
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      },
-    )
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "xi-api-key": elevenLabsApiKey,
+        },
+        body: JSON.stringify({
+          text,
+          model_id: "eleven_multilingual_v2", // Or another suitable model
+          voice_settings: {
+            stability: 0.75,
+            similarity_boost: 0.75,
+          },
+        }),
+      }
+    );
+
+    if (!elevenLabsResponse.ok) {
+      const errorText = await elevenLabsResponse.text();
+      throw new Error(`ElevenLabs API error: ${elevenLabsResponse.status} - ${errorText}`);
+    }
+
+    const audioBlob = await elevenLabsResponse.blob();
+
+    // Initialize Supabase client for storage
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+      process.env.SUPABASE_SERVICE_ROLE_KEY || "",
+      { auth: { persistSession: false } }
+    );
+
+    // Upload audio to Supabase Storage
+    const fileName = `tts/${Date.now()}.mp3`;
+    const { error: uploadError } = await supabaseAdmin.storage
+      .from("agent-voice-responses") // Assuming a bucket named 'agent-voice-responses' exists
+      .upload(fileName, audioBlob, {
+        contentType: "audio/mpeg",
+        upsert: true,
+      });
+
+    if (uploadError) {
+      throw new Error(`Failed to upload audio to Supabase Storage: ${uploadError.message}`);
+    }
+
+    const { data: publicUrlData } = supabaseAdmin.storage
+      .from("agent-voice-responses")
+      .getPublicUrl(fileName);
+
+    if (!publicUrlData?.publicUrl) {
+      throw new Error("Failed to get public URL for the audio file.");
+    }
+
+    Object.entries(corsHeaders).forEach(([key, value]) => res.setHeader(key, value));
+    res.setHeader("Content-Type", "application/json");
+    return res.status(200).json({ voiceUrl: publicUrlData.publicUrl, language });
+  } catch (error: any) {
+    console.error("Text-to-speech error:", error);
+    Object.entries(corsHeaders).forEach(([key, value]) => res.setHeader(key, value));
+    res.setHeader("Content-Type", "application/json");
+    return res.status(500).json({ error: error.message });
   }
-})
+}

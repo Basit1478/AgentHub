@@ -70,7 +70,7 @@ export function VoiceChat({
     };
   }, [onVoiceInput, toast]);
 
-<<<<<<< HEAD
+
   const toggleListening = () => {
     if (!recognitionRef.current) return;
 
@@ -89,34 +89,6 @@ export function VoiceChat({
         }
       }, 2000);
       setIsListening(true);
-=======
-  const loadVoices = () => {
-    const availableVoices = speechSynthesis.getVoices()
-    const voiceOptions: VoiceOption[] = availableVoices
-      .filter(voice => voice.lang.includes('en') || voice.lang.includes('ur'))
-      .map(voice => ({
-        name: voice.name,
-        lang: voice.lang,
-        voiceURI: voice.voiceURI,
-        gender: voice.name.toLowerCase().includes('female') || voice.name.toLowerCase().includes('woman') || voice.name.toLowerCase().includes('girl') ? 'female' : 'male',
-        accent: getAccentFromLang(voice.lang)
-      }))
-    
-    setVoices(voiceOptions)
-    if (voiceOptions.length > 0 && !selectedVoice) {
-      setSelectedVoice(voiceOptions[0])
-    }
-  }
-
-  const getAccentFromLang = (lang: string): string => {
-    const accents: { [key: string]: string } = {
-      'en-US': 'American',
-      'en-GB': 'British',
-      'en-AU': 'Australian',
-      'en-CA': 'Canadian',
-      'ur-PK': 'Urdu',
-      'ur': 'Urdu'
->>>>>>> 292ecbeae734842a9e93eab6dc1324a41e2f22d9
     }
   };
 

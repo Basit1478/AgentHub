@@ -61,7 +61,7 @@ export default function Agents() {
       ]
     },
     {
-      id: "Hunarbot",
+      id: "hunarbot",
       name: "HunarBot",
       title: "HR Specialist", 
       icon: Users,
@@ -79,7 +79,7 @@ export default function Agents() {
     },
     {
       id: "buzzbot",
-      name: "buzzbot", 
+      name: "Buzzbot", 
       title: "Marketing Expert",
       icon: TrendingUp,
       color: "from-emerald-600 to-teal-600", 
@@ -97,7 +97,7 @@ export default function Agents() {
   ]
 
   const openFullChat = (agent: any) => {
-    window.location.href = '/chat';
+    // This function is no longer needed as navigation is handled by Next.js Link component
   };
 
   return (
@@ -213,14 +213,27 @@ export default function Agents() {
                   </div>
                   
                   <div className="space-y-3">
-                    <Button
-                      onClick={() => openFullChat(agent)}
-                      variant="gradient"
-                      className="w-full"
-                    >
-                      <Zap className="h-4 w-4 mr-2" />
-                      Open Full Chat
-                    </Button>
+                    <Link href={`/agents/${agent.id}`} passHref>
+                      <Button
+                        variant="gradient"
+                        className="w-full group relative overflow-hidden"
+                      >
+                        <motion.div
+                          className="flex items-center space-x-2"
+                          whileHover={{ x: 5 }}
+                          transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                        >
+                          <Zap className="h-4 w-4" />
+                          <span>Open Full Chat</span>
+                        </motion.div>
+                        <motion.div
+                          className="absolute inset-0 bg-white/20 rounded-lg"
+                          initial={{ x: "-100%" }}
+                          whileHover={{ x: "100%" }}
+                          transition={{ duration: 0.5 }}
+                        />
+                      </Button>
+                    </Link>
                   </div>
                 </CardContent>
               </Card>

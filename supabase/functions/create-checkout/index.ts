@@ -1,26 +1,30 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@14.21.0";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import type { NextApiRequest, NextApiResponse } from "next";
+import Stripe from "stripe";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-serve(async (req) => {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    Object.entries(corsHeaders).forEach(([key, value]) => res.setHeader(key, value));
+    return res.status(204).end();
+  }
+
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method Not Allowed" });
   }
 
   try {
-    const { planName } = await req.json();
+    const { planName } = req.body;
     
     if (!planName) {
       throw new Error("Plan name is required");
     }
 
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
-      apiVersion: "2023-10-16",
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
+      apiVersion: "2025-07-30.basil",
     });
 
     // Define pricing for each plan
@@ -59,22 +63,20 @@ serve(async (req) => {
         },
       ],
       mode: "subscription",
-      success_url: `${req.headers.get("origin")}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${req.headers.get("origin")}/pricing`,
+      success_url: `${req.headers.origin}/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${req.headers.origin}/pricing`,
       metadata: {
         planName: planName,
       },
     });
 
-    return new Response(JSON.stringify({ url: session.url }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
-    });
-  } catch (error) {
+    Object.entries(corsHeaders).forEach(([key, value]) => res.setHeader(key, value));
+    res.setHeader("Content-Type", "application/json");
+    return res.status(200).json({ url: session.url });
+  } catch (error: any) {
     console.error("Stripe checkout error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
+    Object.entries(corsHeaders).forEach(([key, value]) => res.setHeader(key, value));
+    res.setHeader("Content-Type", "application/json");
+    return res.status(500).json({ error: error.message });
   }
-});
+}

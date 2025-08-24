@@ -1,449 +1,752 @@
+import React, { useState, useRef, useEffect } from "react";
+import { ErrorBoundary } from "react-error-boundary";
+import { useAuth } from "@/contexts/AuthContext";
+import { motion, AnimatePresence } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { ConversationLimitModal } from "./ConversationLimitModal";
+import {
+  X,
+  Send,
+  Bot,
+  Loader2,
+  Volume2,
+  MoreVertical,
+  Video,
+  Paperclip,
+  Smile,
+  Check,
+  CheckCheck,
+  Mic,
+  MicOff,
+} from "lucide-react";
 
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import {WhatsAppUI} from '../components/WhatsAppUI';
-import {ChatGPTUI} from '../components/ChatGPTUI';
-import { motion, AnimatePresence } from 'framer-motion';
+interface Message {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  timestamp: Date;
+  status?: "sending" | "sent" | "delivered" | "read";
+  voiceUrl?: string;
+  language?: string;
+}
 
-<<<<<<< HEAD
-const ChatInterface = ({ agent }) => {
-  const [activeUI, setActiveUI] = useState('whatsapp');
-=======
 interface Agent {
-  id: string
-  name: string
-  icon: React.ComponentType<any>
-  color: string
-  description: string
-  specialties: string[]
-  systemPrompt: string
+  id: string;
+  name: string;
+  icon: React.ComponentType<any>;
+  color: string;
+  description: string;
+  specialties: string[];
+  systemPrompt: string;
 }
 
 interface ChatInterfaceProps {
-  agent: Agent
-  onClose: () => void
+  agent: Agent;
+  onClose: () => void;
 }
 
+const ErrorFallback = ({ error }: { error: Error }) => (
+  <div className="p-4 text-center">
+    <p className="text-red-500">Error: {error.message}</p>
+    <Button onClick={() => window.location.reload()} className="mt-2">
+      Retry
+    </Button>
+  </div>
+);
+
 export function ChatInterface({ agent, onClose }: ChatInterfaceProps) {
-  const [messages, setMessages] = useState<Message[]>([])
-  const [message, setMessage] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-  const [isListening, setIsListening] = useState(false)
-  const [isSpeaking, setIsSpeaking] = useState(false)
-  const [showFileUpload, setShowFileUpload] = useState(false)
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
-  const [showLimitModal, setShowLimitModal] = useState(false)
-  const [conversationData, setConversationData] = useState({ conversationsUsed: 0, plan: 'free' })
-  const { user } = useAuth()
-  const inputRef = useRef<HTMLInputElement>(null)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const { toast } = useToast()
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [message, setMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [showLimitModal, setShowLimitModal] = useState(false);
+  const [conversationData, setConversationData] = useState({ conversationsUsed: 0, plan: "free" });
+  const [messageCount, setMessageCount] = useState(0);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showFileUpload, setShowFileUpload] = useState(false);
+  const { user } = useAuth();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const { toast } = useToast();
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages])
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   useEffect(() => {
-    // Add welcome message
     const welcomeMessage: Message = {
-      id: "welcome",
+      id: `welcome-${Date.now()}`,
       role: "assistant",
-      content: `Hello! I'm your ${agent.name}. I'm here to help you with ${agent.specialties.join(", ").toLowerCase()}. How can I assist you today?`,
-      timestamp: new Date()
-    }
-    setMessages([welcomeMessage])
-    
-    // Focus input
-    setTimeout(() => inputRef.current?.focus(), 100)
-  }, [agent])
-
-  // Load chat history on mount
-  useEffect(() => {
-    const loadChatHistory = async () => {
-      if (!user) return;
-      
-      try {
-        const { data } = await supabase.functions.invoke('get-chat-history', {
-          body: { agentId: agent.id }
-        });
-        
-        if (data?.messages && data.messages.length > 0) {
-          setMessages(data.messages);
-        }
-      } catch (error) {
-        console.error('Failed to load chat history:', error);
-      }
+      content: `Hey! 👋 I'm ${agent.name}, your ${agent.specialties.join(", ").toLowerCase()} expert. How can I assist you today?`,
+      timestamp: new Date(),
+      status: "delivered",
+      language: "en",
     };
+    setMessages([welcomeMessage]);
+    inputRef.current?.focus();
+  }, [agent]);
 
-    loadChatHistory();
-  }, [user, agent.id]);
-
-  // Save chat history
-  const saveChat = async (messages: Message[]) => {
-    if (!user) return;
-    
-    try {
-      await supabase.functions.invoke('save-chat', {
-        body: { messages, agentId: agent.id }
+  const speakText = (voiceUrl: string) => {
+    if (audioRef.current) {
+      audioRef.current.src = voiceUrl;
+      audioRef.current.play().catch((error) => {
+        toast({
+          title: "Playback Error",
+          description: "Failed to play voice response",
+          variant: "destructive",
+        });
       });
-    } catch (error) {
-      console.error('Failed to save chat:', error);
+      setIsSpeaking(true);
+      audioRef.current.onended = () => setIsSpeaking(false);
     }
   };
 
-  const speakText = (text: string) => {
-    if ('speechSynthesis' in window) {
-      setIsSpeaking(true)
-      const utterance = new SpeechSynthesisUtterance(text)
-      utterance.rate = 0.9
-      utterance.pitch = 1
-      
-      utterance.onend = () => setIsSpeaking(false)
-      utterance.onerror = () => setIsSpeaking(false)
-      
-      window.speechSynthesis.speak(utterance)
-    }
-  }
-
-  const startListening = () => {
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition
-      const recognition = new SpeechRecognition()
-      
-      recognition.continuous = false
-      recognition.interimResults = false
-      recognition.lang = 'en-US'
-      
-      setIsListening(true)
-      
-      recognition.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript
-        setMessage(transcript)
-        setIsListening(false)
-      }
-      
-      recognition.onerror = () => {
-        setIsListening(false)
-        toast({
-          title: "Speech Recognition Error",
-          description: "Unable to recognize speech. Please try again.",
-          variant: "destructive"
-        })
-      }
-      
-      recognition.onend = () => setIsListening(false)
-      recognition.start()
-    }
-  }
-
-  const copyMessage = (content: string) => {
-    navigator.clipboard.writeText(content)
-    toast({
-      title: "Copied!",
-      description: "Message copied to clipboard.",
-    })
-  }
-
-  const handleFileUpload = (files: File[]) => {
-    setUploadedFiles(prev => [...prev, ...files])
-    toast({
-      title: "Files uploaded!",
-      description: `${files.length} file(s) ready to share with ${agent.name}`,
-    })
-  }
-
-  const sendMessage = async () => {
-    if (!message.trim() || isLoading) return
-    
+  const startRecording = async () => {
     if (!user) {
       toast({
         title: "Authentication Required",
-        description: "Please sign in to chat with agents",
-        variant: "destructive"
-      })
-      return
-    }
-
-    // Check conversation limit before sending
-    try {
-      const { data: limitCheck, error: limitError } = await supabase.functions.invoke('check-conversation-limit');
-      
-      if (limitError) {
-        toast({
-          title: "Error",
-          description: "Failed to check conversation limit",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      if (!limitCheck.can_send) {
-        setConversationData({
-          conversationsUsed: limitCheck.conversations_used,
-          plan: limitCheck.plan
-        });
-        setShowLimitModal(true);
-        return;
-      }
-
-      setConversationData({
-        conversationsUsed: limitCheck.conversations_used,
-        plan: limitCheck.plan
+        description: "Please sign in to use voice input",
+        variant: "destructive",
       });
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorderRef.current = new MediaRecorder(stream, { mimeType: "audio/webm" });
+      audioChunksRef.current = [];
 
-    } catch (error) {
-      console.error('Error checking conversation limit:', error);
+      mediaRecorderRef.current.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorderRef.current.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        await handleVoiceInput(audioBlob);
+        stream.getTracks().forEach((track) => track.stop());
+      };
+
+      mediaRecorderRef.current.start();
+      setIsRecording(true);
       toast({
-        title: "Error",
-        description: "Failed to verify conversation limit",
-        variant: "destructive"
+        title: "Recording Started",
+        description: "Speak now...",
+      });
+    } catch (error) {
+      toast({
+        title: "Recording Error",
+        description: "Failed to access microphone. Please check permissions.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const handleVoiceInput = async (audioBlob: Blob) => {
+    if (audioBlob.size === 0) {
+      toast({
+        title: "Voice Input Error",
+        description: "Recording was empty. Please try again.",
+        variant: "destructive",
       });
       return;
     }
 
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: message.trim(),
-      timestamp: new Date()
-    }
-
-    setMessages(prev => [...prev, userMessage])
-    const currentFiles = uploadedFiles
-    setMessage("")
-    setUploadedFiles([])
-    setIsLoading(true)
-
     try {
-      const conversationHistory = messages.filter(m => m.id !== "welcome").map(msg => ({
-        role: msg.role === 'user' ? 'user' : 'assistant',
-        content: msg.content
-      }))
+      const formData = new FormData();
+      formData.append("file", audioBlob, "voice-input.webm");
 
-      const { data, error } = await supabase.functions.invoke('chat', {
-        body: {
-          messages: [...conversationHistory, { role: 'user', content: userMessage.content }],
-          agentId: agent.id,
-          files: currentFiles.map(f => ({ name: f.name, type: f.type, size: f.size }))
-        }
-      })
+      const { data, error } = await supabase.functions.invoke("transcribe-voice", {
+        body: formData,
+      });
 
       if (error) {
-        throw new Error(error.message || 'Failed to send message')
+        throw new Error(error.message || "Failed to transcribe voice");
+      }
+
+      if (!data || !data.text) {
+        throw new Error("No transcription available");
+      }
+
+      toast({
+        title: "Voice Input Received",
+        description: `Transcribed in ${data.language === "hi" ? "Hindi" : "English"}: ${data.text}`,
+      });
+      await sendMessage(data.text, data.language);
+    } catch (error: any) {
+      toast({
+        title: "Voice Input Error",
+        description: `Failed to process voice input: ${error.message}. Please try again.`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const sendMessage = async (content: string = message.trim(), language: string = "en") => {
+    if (!content || isLoading) return;
+
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to chat with agents",
+        variant: "destructive",
+      });
+      window.location.href = "/auth";
+      return;
+    }
+
+    const newMessageCount = messageCount + 1;
+    setMessageCount(newMessageCount);
+
+    if (newMessageCount === 100 && user) {
+      try {
+        const { data: profile, error } = await supabase
+          .from("profiles")
+          .select("plan")
+          .eq("user_id", user.id)
+          .single();
+
+        if (!error && profile?.plan === "free") {
+          setShowUpgradeModal(true);
+        }
+      } catch {
+        // ignore error
+      }
+    }
+
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: "user",
+      content,
+      timestamp: new Date(),
+      status: "sending",
+      language,
+    };
+
+    setMessages((prev) => [...prev, userMessage]);
+    setMessage("");
+    setIsLoading(true);
+
+    setTimeout(() => {
+      setMessages((prev) =>
+        prev.map((msg) => (msg.id === userMessage.id ? { ...msg, status: "sent" } : msg))
+      );
+    }, 500);
+
+    setTimeout(() => {
+      setMessages((prev) =>
+        prev.map((msg) => (msg.id === userMessage.id ? { ...msg, status: "delivered" } : msg))
+      );
+    }, 1000);
+
+    try {
+      const conversationHistory = messages
+        .filter((m) => !m.id.startsWith("welcome"))
+        .map((msg) => ({
+          role: msg.role === "user" ? "user" : "assistant",
+          content: msg.content,
+        }));
+
+      const { data, error } = await supabase.functions.invoke("chat-with-gemini", {
+        body: {
+          messages: [...conversationHistory, { role: "user", content }],
+          agentId: agent.id,
+          systemPrompt: agent.systemPrompt,
+          language,
+        },
+      });
+
+      if (error) {
+        throw new Error(error.message || "Failed to send message");
       }
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
-        role: 'assistant',
+        role: "assistant",
         content: data.message,
-        timestamp: new Date()
-      }
+        timestamp: new Date(),
+        status: "delivered",
+        voiceUrl: data.voiceUrl,
+        language,
+      };
 
-      const newMessages = [...messages, userMessage, assistantMessage]
-      setMessages(newMessages)
-      
-      // Save chat history
-      await saveChat(newMessages)
-    } catch (error) {
+      setMessages((prev) => [
+        ...prev.slice(0, -1),
+        { ...userMessage, status: "read" },
+        assistantMessage,
+      ]);
+
+      if (data.voiceUrl) {
+        speakText(data.voiceUrl);
+      }
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to send message. Please try again.",
-        variant: "destructive"
-      })
+        description: `Failed to send message: ${error.message}. Please try again.`,
+        variant: "destructive",
+      });
+      setMessages((prev) => prev.filter((msg) => msg.id !== userMessage.id));
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      sendMessage()
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
     }
-  }
+  };
 
-  const clearChat = () => {
-    setMessages([{
-      id: "welcome",
-      role: "assistant",
-      content: `Hello! I'm your ${agent.name}. I'm here to help you with ${agent.specialties.join(", ").toLowerCase()}. How can I assist you today?`,
-      timestamp: new Date()
-    }])
-  }
->>>>>>> 292ecbeae734842a9e93eab6dc1324a41e2f22d9
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to upload files",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const file = e.target.files[0];
+    if (!file) {
+      toast({
+        title: "No File Selected",
+        description: "Please select a file to upload.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File Too Large",
+        description: "Please upload a file smaller than 5MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const allowedTypes = [
+      "application/pdf",
+      "text/plain",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "image/png",
+      "image/jpeg",
+    ];
+    if (!allowedTypes.includes(file.type)) {
+      toast({
+        title: "Invalid File Type",
+        description: "Please upload a PDF, DOC, DOCX, TXT, PNG, or JPG file.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage
+        .from("user-uploads")
+        .upload(fileName, file, {
+          contentType: file.type,
+        });
+
+      if (uploadError) {
+        throw new Error(uploadError.message || "Failed to upload file");
+      }
+
+      const { data: publicUrlData } = supabase.storage
+        .from("user-uploads")
+        .getPublicUrl(fileName);
+
+      if (!publicUrlData?.publicUrl) {
+        throw new Error("Failed to generate public URL");
+      }
+
+      const fileMessageContent = `Uploaded file: ${publicUrlData.publicUrl}`;
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now().toString(),
+          role: "user",
+          content: fileMessageContent,
+          timestamp: new Date(),
+          status: "sent",
+        },
+      ]);
+      setShowFileUpload(false);
+      toast({
+        title: "File Uploaded",
+        description: "Your file has been successfully uploaded!",
+      });
+
+      await sendMessage(
+        `I uploaded a file: ${publicUrlData.publicUrl}. Please analyze it as a ${agent.specialties.join(", ").toLowerCase()} expert and provide relevant insights.`,
+        "en"
+      );
+    } catch (error: any) {
+      toast({
+        title: "Upload Failed",
+        description: `Could not upload file: ${error.message}. Please try again.`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getStatusIcon = (status?: string) => {
+    switch (status) {
+      case "sent":
+        return <Check className="h-3 w-3" />;
+      case "delivered":
+      case "read":
+        return <CheckCheck className="h-3 w-3 text-blue-500" />;
+      default:
+        return <Loader2 className="h-3 w-3 animate-spin" />;
+    }
+  };
 
   return (
-    <div className="w-full h-full flex flex-col">
-      <div className="flex justify-center p-2 bg-background">
-        <div className="bg-muted p-1 rounded-lg">
-          <Button
-            variant={activeUI === 'whatsapp' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => setActiveUI('whatsapp')}
-            className={`px-4 py-1 rounded-md transition-colors duration-200 ${
-              activeUI === 'whatsapp' ? 'bg-white text-black shadow-sm' : 'text-muted-foreground'
-            }`}
-          >
-            WhatsApp
-          </Button>
-          <Button
-            variant={activeUI === 'chatgpt' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => setActiveUI('chatgpt')}
-            className={`px-4 py-1 rounded-md transition-colors duration-200 ${
-              activeUI === 'chatgpt' ? 'bg-white text-black shadow-sm' : 'text-muted-foreground'
-            }`}
-          >
-            ChatGPT
-          </Button>
-        </div>
-      </div>
-      <div className="flex-grow p-4">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeUI}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-            className="w-full h-full"
-          >
-            {activeUI === 'whatsapp' ? (
-              <WhatsAppUI agent={agent}
-              onClose={():void=>setActiveUI('')} />
+    <ErrorBoundary FallbackComponent={ErrorFallback}>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+        onClick={(e) => e.target === e.currentTarget && onClose()}
+      >
+        <motion.div
+          initial={{ scale: 0.95, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.95, opacity: 0 }}
+          transition={{ type: "spring", damping: 20, stiffness: 300 }}
+          className="w-full max-w-md h-[85vh] bg-background border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+        >
+          <div className={`bg-gradient-to-r ${agent.color} p-4 text-white`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <Button
+                  onClick={onClose}
+                  variant="ghost"
+                  size="sm"
+                  className="text-white hover:bg-white/20 p-1"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+                <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+                  <agent.icon className="h-6 w-6" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-lg">{agent.name}</h3>
+                  <p className="text-white/80 text-xs">online</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-white hover:bg-white/20 p-2"
+                >
+                  <Video className="h-5 w-5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-white hover:bg-white/20 p-2"
+                >
+                  <MoreVertical className="h-5 w-5" />
+                </Button>
+              </div>
+            </div>
+          </div>
 
-            ) : (
-              <ChatGPTUI agent={agent}
-              onClose={():void=>setActiveUI('')} />
+          <div className="flex-1 overflow-y-auto bg-gradient-to-b from-muted/20 to-muted/10 p-4 space-y-3">
+            <AnimatePresence initial={false}>
+              {messages.map((msg, index) => (
+                <motion.div
+                  key={msg.id}
+                  initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{
+                    type: "spring",
+                    damping: 25,
+                    stiffness: 300,
+                    delay: index * 0.05,
+                  }}
+                  className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                >
+                  <div className={`max-w-[85%] ${msg.role === "user" ? "order-2" : "order-1"}`}>
+                    <motion.div
+                      className={`rounded-2xl p-3 shadow-sm relative ${
+                        msg.role === "user"
+                          ? "bg-primary text-primary-foreground rounded-br-md"
+                          : "bg-background border border-border rounded-bl-md"
+                      }`}
+                      whileHover={{ scale: 1.02 }}
+                      transition={{ type: "spring", damping: 25, stiffness: 400 }}
+                    >
+                      <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                      <div
+                        className={`flex items-center justify-end gap-1 mt-1 text-xs opacity-60 ${
+                          msg.role === "user" ? "text-primary-foreground" : "text-muted-foreground"
+                        }`}
+                      >
+                        <span>
+                          {msg.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                        {msg.role === "user" && getStatusIcon(msg.status)}
+                      </div>
+                      <div
+                        className={`absolute bottom-0 w-3 h-3 ${
+                          msg.role === "user"
+                            ? "right-0 bg-primary transform rotate-45 translate-x-1 translate-y-1"
+                            : "left-0 bg-background border-l border-b border-border transform rotate-45 -translate-x-1 translate-y-1"
+                        }`}
+                      />
+                    </motion.div>
+                    {msg.role === "assistant" && msg.voiceUrl && (
+                      <div className="flex items-center space-x-2 mt-1 ml-2">
+                        <Button
+                          onClick={() => speakText(msg.voiceUrl!)}
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 text-muted-foreground hover:text-primary"
+                          disabled={isSpeaking}
+                        >
+                          <Volume2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+            {isLoading && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex justify-start"
+              >
+                <div className="bg-background border border-border rounded-2xl rounded-bl-md p-3 shadow-sm">
+                  <div className="flex items-center space-x-1">
+                    <motion.div
+                      className="w-2 h-2 bg-muted-foreground rounded-full"
+                      animate={{ scale: [1, 1.2, 1] }}
+                      transition={{ duration: 0.6, repeat: Infinity, delay: 0 }}
+                    />
+                    <motion.div
+                      className="w-2 h-2 bg-muted-foreground rounded-full"
+                      animate={{ scale: [1, 1.2, 1] }}
+                      transition={{ duration: 0.6, repeat: Infinity, delay: 0.2 }}
+                    />
+                    <motion.div
+                      className="w-2 h-2 bg-muted-foreground rounded-full"
+                      animate={{ scale: [1, 1.2, 1] }}
+                      transition={{ duration: 0.6, repeat: Infinity, delay: 0.4 }}
+                    />
+                  </div>
+                </div>
+              </motion.div>
             )}
-          </motion.div>
-        </AnimatePresence>
-      </div>
-    </div>
-  );
-};
-
-<<<<<<< HEAD
-export default ChatInterface;
-=======
-        {/* Input Area */}
-        <div className="border-t border-border bg-background/50 backdrop-blur-sm p-6">
-          <div className="flex items-end space-x-3">
-            <div className="flex-1 relative">
-              <Input
-                ref={inputRef}
-                placeholder={`Ask ${agent.name} anything...`}
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                onKeyPress={handleKeyPress}
-                disabled={isLoading}
-                className="pr-12 py-3 text-sm rounded-xl border-border/50 bg-background/80 backdrop-blur-sm focus:bg-background transition-all"
-              />
-              
-              {/* Character count */}
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                {message.length}
-              </div>
-            </div>
-            
-            {/* File Upload Button */}
-            <Button
-              onClick={() => {
-                if (!user) {
-                  toast({
-                    title: "Authentication Required",
-                    description: "Please sign in to upload files",
-                    variant: "destructive"
-                  })
-                  return
-                }
-                setShowFileUpload(!showFileUpload)
-              }}
-              variant="outline"
-              size="icon"
-              className={`rounded-xl transition-all ${showFileUpload ? 'bg-primary/10 border-primary text-primary' : ''}`}
-            >
-              <Paperclip className="h-4 w-4" />
-            </Button>
-            
-            {/* Voice Input */}
-            <Button
-              onClick={startListening}
-              disabled={isLoading || isListening}
-              variant="outline"
-              size="icon"
-              className={`rounded-xl transition-all ${isListening ? 'animate-pulse bg-red-500/10 border-red-500 text-red-500' : ''}`}
-            >
-              {isListening ? (
-                <MicOff className="h-4 w-4" />
-              ) : (
-                <Mic className="h-4 w-4" />
-              )}
-            </Button>
-            
-            {/* Send Button */}
-            <Button
-              onClick={sendMessage}
-              disabled={!message.trim() || isLoading || !user}
-              className={`rounded-xl px-6 transition-all bg-gradient-to-r ${agent.color} hover:opacity-90`}
-            >
-              {isLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <>
-                  <Send className="h-4 w-4 mr-2" />
-                  Send
-                </>
-              )}
-            </Button>
+            <div ref={messagesEndRef} />
           </div>
-          
-          {/* Uploaded Files Preview */}
-          {uploadedFiles.length > 0 && (
-            <div className="mt-3 flex items-center space-x-2">
-              <span className="text-xs text-muted-foreground">Files ready:</span>
-              <div className="flex flex-wrap gap-1">
-                {uploadedFiles.map((file, index) => (
-                  <Badge key={index} variant="outline" className="text-xs">
-                    {file.name}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
-          
-          {/* Quick Actions */}
-          <div className="flex items-center justify-between mt-3 text-xs text-muted-foreground">
-            <div className="flex items-center space-x-4">
-              <span className="flex items-center">
-                <Zap className="h-3 w-3 mr-1" />
-                Press Enter to send
-              </span>
-              <span className="flex items-center">
-                <MessageSquare className="h-3 w-3 mr-1" />
-                {messages.length - 1} messages
-              </span>
-              <span className="flex items-center">
-                <Paperclip className="h-3 w-3 mr-1" />
-                Upload files
-              </span>
-            </div>
-            
-            <Badge variant="outline" className="text-xs">
-              Powered by RaahBot AI
-            </Badge>
-          </div>
-        </div>
 
-        {/* Conversation Limit Modal */}
+          <div className="p-4 bg-background border-t border-border">
+            <div className="flex items-center space-x-2">
+              <Button
+                onClick={() => {
+                  if (!user) {
+                    toast({
+                      title: "Authentication Required",
+                      description: "Please sign in to upload files",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+                  setShowFileUpload(!showFileUpload);
+                }}
+                variant="ghost"
+                size="sm"
+                className={`text-muted-foreground hover:text-primary p-2 ${
+                  showFileUpload ? "bg-primary/10 text-primary" : ""
+                }`}
+              >
+                <Paperclip className="h-5 w-5" />
+              </Button>
+              <div className="flex-1 relative">
+                <Input
+                  ref={inputRef}
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Type a message..."
+                  className="rounded-full border-border bg-muted/50 pr-10"
+                  disabled={isLoading || isRecording}
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary p-1"
+                >
+                  <Smile className="h-4 w-4" />
+                </Button>
+              </div>
+              {message.trim() ? (
+                <Button
+                  onClick={() => sendMessage()}
+                  disabled={isLoading}
+                  className="rounded-full h-10 w-10 p-0 bg-primary hover:bg-primary/90"
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
+              ) : (
+                <Button
+                  onClick={isRecording ? stopRecording : startRecording}
+                  disabled={isLoading}
+                  className={`rounded-full h-10 w-10 p-0 ${
+                    isRecording ? "bg-red-500 hover:bg-red-600" : "bg-primary hover:bg-primary/90"
+                  }`}
+                >
+                  {isRecording ? (
+                    <MicOff className="h-4 w-4" />
+                  ) : (
+                    <Mic className="h-4 w-4" />
+                  )}
+                </Button>
+              )}
+            </div>
+            {isRecording && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="text-center mt-2"
+              >
+                <div className="flex items-center justify-center gap-2 text-primary">
+                  <motion.div
+                    animate={{ scale: [1, 1.2, 1] }}
+                    transition={{ duration: 1, repeat: Infinity }}
+                  >
+                    <Mic className="h-4 w-4" />
+                  </motion.div>
+                  <span className="text-sm">Recording...</span>
+                </div>
+              </motion.div>
+            )}
+          </div>
+          <audio ref={audioRef} style={{ display: "none" }} />
+        </motion.div>
+
+        {/* Modals */}
         <ConversationLimitModal
           isOpen={showLimitModal}
           onClose={() => setShowLimitModal(false)}
           conversationsUsed={conversationData.conversationsUsed}
           plan={conversationData.plan}
         />
+
+        {showUpgradeModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={(e) => e.target === e.currentTarget && setShowUpgradeModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-background border border-border rounded-2xl p-6 max-w-sm w-full shadow-2xl"
+            >
+              <div className="text-center space-y-4">
+                <div className="w-16 h-16 bg-gradient-to-r from-primary to-primary/80 rounded-full flex items-center justify-center mx-auto">
+                  <Bot className="h-8 w-8 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold mb-2">Upgrade to Premium</h3>
+                  <p className="text-muted-foreground text-sm">
+                    You've sent 100 messages! Upgrade to Premium for unlimited conversations, priority support, and advanced features.
+                  </p>
+                </div>
+                <div className="flex flex-col gap-3">
+                  <Button
+                    onClick={() => {
+                      setShowUpgradeModal(false);
+                      window.location.href = "/pricing";
+                    }}
+                    className="w-full bg-gradient-to-r from-primary to-primary/80 hover:opacity-90"
+                  >
+                    Upgrade to Premium
+                  </Button>
+                  <Button
+                    onClick={() => setShowUpgradeModal(false)}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    Continue with Free Plan
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {showFileUpload && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={(e) => e.target === e.currentTarget && setShowFileUpload(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-background border border-border rounded-2xl p-6 max-w-sm w-full shadow-2xl"
+            >
+              <div className="text-center space-y-4">
+                <h3 className="text-lg font-semibold">Upload Document</h3>
+                <p className="text-muted-foreground text-sm">
+                  Select a document to share with {agent.name}
+                </p>
+                <div className="border-2 border-dashed border-border rounded-lg p-8 hover:border-primary/50 transition-colors cursor-pointer relative">
+                  <input
+                    type="file"
+                    accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg"
+                    onChange={handleFileUpload}
+                    className="opacity-0 absolute inset-0 cursor-pointer"
+                  />
+                  <Paperclip className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">Click to select file</p>
+                </div>
+                <Button
+                  onClick={() => setShowFileUpload(false)}
+                  variant="outline"
+                  className="w-full"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
       </motion.div>
-    </motion.div>
-  )
+    </ErrorBoundary>
+  );
 }
->>>>>>> 292ecbeae734842a9e93eab6dc1324a41e2f22d9

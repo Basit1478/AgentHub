@@ -1,26 +1,31 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createClient } from "@supabase/supabase-js";
+import type { NextApiRequest, NextApiResponse } from "next";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-serve(async (req) => {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    Object.entries(corsHeaders).forEach(([key, value]) => res.setHeader(key, value));
+    return res.status(204).end();
+  }
+
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method Not Allowed" });
   }
 
   try {
     // Create Supabase client with service role key
     const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      process.env.SUPABASE_URL ?? "",
+      process.env.SUPABASE_SERVICE_ROLE_KEY ?? "",
       { auth: { persistSession: false } }
     );
 
     // Get authenticated user
-    const authHeader = req.headers.get("Authorization");
+    const authHeader = req.headers.authorization;
     if (!authHeader) {
       throw new Error("No authorization header");
     }
@@ -43,15 +48,13 @@ serve(async (req) => {
       throw error;
     }
 
-    return new Response(JSON.stringify(data), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
-    });
+    Object.entries(corsHeaders).forEach(([key, value]) => res.setHeader(key, value));
+    res.setHeader("Content-Type", "application/json");
+    return res.status(200).json(data);
   } catch (error) {
     console.error("Error checking conversation limit:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
+    Object.entries(corsHeaders).forEach(([key, value]) => res.setHeader(key, value));
+    res.setHeader("Content-Type", "application/json");
+    return res.status(500).json({ error: (error as Error).message });
   }
-});
+}

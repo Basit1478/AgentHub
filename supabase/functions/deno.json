@@ -1,0 +1,6 @@
+{
+  "compilerOptions": {
+    "lib": ["deno.ns", "esnext", "dom.iterable"],
+    "types": ["@deno-types/deno.ns"]
+  }
+}

@@ -1,64 +1,64 @@
-// functions/transcribe-voice/index.ts
-import { serve } from "https://deno.land/std@0.131.0/http/server.ts";
+import type { NextApiRequest, NextApiResponse } from "next";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS"
 };
 
-// 🔑 API Key ko Deno environment variable me rakho
-const ELEVEN_API_KEY = Deno.env.get("ELEVEN_LABS_API_KEY");
-
-serve(async (req) => {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    Object.entries(corsHeaders).forEach(([key, value]) => res.setHeader(key, value));
+    return res.status(204).end();
+  }
+
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method Not Allowed" });
   }
 
   try {
-    const formData = await req.formData();
-    const audioFile = formData.get("file");
+    // Note: For Next.js API routes with file uploads, you often need a middleware like `formidable`.
+    // Assuming `req.files?.audio` is available through a custom middleware setup.
+    const audioFile = (req as any).files?.audio as File; 
 
     if (!audioFile) {
-      return new Response(
-        JSON.stringify({ error: "Audio file missing" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      throw new Error("No audio file provided.");
     }
 
-    // 🎤 Eleven Labs STT API call
-    const response = await fetch("https://api.elevenlabs.io/v1/speech-to-text", {
-      method: "POST",
-      headers: {
-        "xi-api-key": ELEVEN_API_KEY!,
-      },
-      body: (() => {
-        const fd = new FormData();
-        fd.append("file", audioFile);
-        fd.append("model_id", "eleven_multilangual_v2"); // ✅ recommended STT model
-        return fd;
-      })()
-    });
+    // Convert audio to a Blob for Eleven Labs API
+    const audioBlob = new Blob([await audioFile.arrayBuffer()], { type: audioFile.type });
 
-    const data = await response.json();
+    // Prepare form data for Eleven Labs
+    const formData = new FormData();
+    formData.append("audio", audioBlob, audioFile.name);
+    formData.append("model_id", "whisper-1"); // Explicitly add model_id to form data
 
-    if (!response.ok || !data || !data.text) {
-        console.error("Eleven Labs transcription failed or returned no text:", data);
-        return new Response(
-            JSON.stringify({ error: data.detail || "Transcription failed or no text available" }),
-            { status: response.status || 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-    }
-
-    return new Response(JSON.stringify(data), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
-    });
-
-  } catch (error) {
-    return new Response(
-      JSON.stringify({ error: String(error) }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    // Call Eleven Labs Whisper ASR
+    const elevenLabsResponse = await fetch(
+      `https://api.elevenlabs.io/v1/speech-to-text`,
+      {
+        method: "POST",
+        headers: {
+          "xi-api-key": process.env.ELEVENLABS_API_KEY ?? "",
+        },
+        body: formData,
+      }
     );
+
+    if (!elevenLabsResponse.ok) {
+      const errorText = await elevenLabsResponse.text();
+      throw new Error(`Eleven Labs API error: ${elevenLabsResponse.status} - ${errorText}`);
+    }
+
+    const result = (await elevenLabsResponse.json()) as { text: string }; // Simplified type for immediate use
+    const transcript = result.text;
+
+    Object.entries(corsHeaders).forEach(([key, value]) => res.setHeader(key, value));
+    res.setHeader("Content-Type", "application/json");
+    return res.status(200).json({ transcript });
+  } catch (error: any) {
+    console.error("Voice transcription error:", error);
+    Object.entries(corsHeaders).forEach(([key, value]) => res.setHeader(key, value));
+    res.setHeader("Content-Type", "application/json");
+    return res.status(500).json({ error: error.message });
   }
-});
+}

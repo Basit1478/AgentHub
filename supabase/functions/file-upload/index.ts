@@ -1,25 +1,30 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import type { NextApiRequest, NextApiResponse } from "next";
+import { createClient } from "@supabase/supabase-js";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-serve(async (req) => {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    Object.entries(corsHeaders).forEach(([key, value]) => res.setHeader(key, value));
+    return res.status(204).end();
+  }
+
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method Not Allowed" });
   }
 
   try {
-    const authHeader = req.headers.get("Authorization");
+    const authHeader = req.headers.authorization;
     if (!authHeader) {
       throw new Error("No authorization header");
     }
 
     const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+      process.env.SUPABASE_URL ?? "",
+      process.env.SUPABASE_SERVICE_ROLE_KEY ?? ""
     );
 
     const token = authHeader.replace("Bearer ", "");
@@ -30,8 +35,7 @@ serve(async (req) => {
       throw new Error("User not authenticated");
     }
 
-    const formData = await req.formData();
-    const file = formData.get("file") as File;
+    const file = (req as any).files?.file as File; // Access uploaded file from req.files
     
     if (!file) {
       throw new Error("No file provided");
@@ -72,20 +76,19 @@ serve(async (req) => {
       .from("user-uploads")
       .getPublicUrl(uploadData.path);
 
-    return new Response(JSON.stringify({
+    Object.entries(corsHeaders).forEach(([key, value]) => res.setHeader(key, value));
+    res.setHeader("Content-Type", "application/json");
+    return res.status(200).json({
       id: fileRecord.id,
       filename: fileRecord.filename,
       url: urlData.publicUrl,
       type: fileRecord.file_type,
       size: fileRecord.file_size,
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("File upload error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
+    Object.entries(corsHeaders).forEach(([key, value]) => res.setHeader(key, value));
+    res.setHeader("Content-Type", "application/json");
+    return res.status(500).json({ error: error.message });
   }
-});
+}
