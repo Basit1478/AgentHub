@@ -3,14 +3,13 @@
   "private": true,
   "version": "0.1.0",
   "scripts": {
+    "deno:run": "deno run --allow-net --allow-env supabase/functions/transcribe-voice/index.ts",
+    "deno:deploy": "supabase functions deploy transcribe-voice",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "type-check": "tsc --noEmit"
-  },
-  "engines": {
-    "node": "18.x"
   },
   "dependencies": {
     "@11labs/react": "^0.1.4",
@@ -61,6 +60,7 @@
     "lucide-react": "^0.462.0",
     "next": "^14.2.31",
     "next-themes": "^0.3.0",
+    "nvm": "^0.0.4",
     "react": "^18.3.1",
     "react-day-picker": "^8.10.1",
     "react-dom": "^18.3.1",
@@ -73,17 +73,19 @@
     "recharts": "^2.12.7",
     "sonner": "^1.5.0",
     "stripe": "^18.4.0",
+    "supabase": "^2.34.3",
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
     "three": "^0.179.1",
     "types": "^0.1.1",
     "vaul": "^0.9.3",
+    "vercel": "^46.0.2",
     "zod": "^3.23.8"
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.15",
     "@types/formidable": "^3.4.5",
-    "@types/node": "^18.19.50",
+    "@types/node": "^22.5.5",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "autoprefixer": "^10.4.20",
@@ -91,7 +93,6 @@
     "eslint-config-next": "^14.2.5",
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.11",
-    "typescript": "^5.5.3",
-    "vercel": "^46.0.2"
+    "typescript": "^5.5.3"
   }
 }
